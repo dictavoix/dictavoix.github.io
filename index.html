@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<script>
+  (function () {
+    var theme = localStorage.getItem('dictavoix_theme');
+    if (theme === 'light' || theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+  })();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dictavoix</title>
+<meta name="theme-color" content="#0b3d3c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app" hidden>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-header__brand">
+      <img src="logo-assets/appicon-square.svg" alt="" class="app-header__glyph">
+      <span class="app-header__wordmark">Dictavoix</span>
+    </div>
+    <div class="app-header__actions">
+      <button type="button" class="icon-btn" id="btn-theme-toggle" aria-label="Activer le mode nuit" title="Changer de thème">
+        <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M21.64 13a1 1 0 0 0-1.05-.14 8.05 8.05 0 0 1-3.37.73 8.15 8.15 0 0 1-8.14-8.1 8.59 8.59 0 0 1 .49-2.8A1 1 0 0 0 8.24 1.4a10.14 10.14 0 1 0 13.4 13.4 1 1 0 0 0 0-1.8Z"/></svg>
+        <svg class="theme-icon theme-icon--sun is-theme-icon-hidden" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <circle cx="12" cy="12" r="5" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </g>
+        </svg>
+      </button>
+      <button type="button" class="icon-btn" id="btn-logout" aria-label="Se déconnecter" title="Se déconnecter" hidden>
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5v-2H5V5h5V3Zm7.59 8L14 7.41 15.41 6 21 11.59 15.41 17 14 15.59 17.59 12H9v-2h8.59Z"/></svg>
+      </button>
+      <button type="button" class="icon-btn" id="btn-open-profile" aria-label="Profil praticien" title="Profil praticien">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5Z"/></svg>
+      </button>
+      <button type="button" class="icon-btn" id="btn-open-legal" aria-label="Mentions légales et confidentialité" title="Mentions légales et confidentialité">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M11 7h2v2h-2Zm0 4h2v6h-2Zm1-9a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main views -->
+  <main class="app-main">
+
+    <!-- Vue Compte-rendu -->
+    <section id="view-compte-rendu" class="view" data-view="compte-rendu">
+
+      <div id="draft-banner" class="draft-banner" hidden>
+        <p>Un brouillon non enregistré a été trouvé.</p>
+        <div class="draft-banner__actions">
+          <button type="button" class="btn btn--ghost" id="btn-discard-draft">Ignorer</button>
+          <button type="button" class="btn btn--primary" id="btn-restore-draft">Restaurer</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="input-patient-name">Nom et prénom</label>
+        <input type="text" id="input-patient-name" placeholder="Nom et prénom du patient" autocomplete="off">
+      </div>
+
+      <div class="field field--grow">
+        <label for="textarea-report">Compte-rendu</label>
+        <textarea id="textarea-report" placeholder="Démarrez la dictée ou saisissez le compte-rendu ici…"></textarea>
+      </div>
+
+      <p id="speech-status" class="speech-status" aria-live="polite"></p>
+
+      <div class="mic-zone">
+        <button type="button" class="mic-btn" id="btn-mic" aria-pressed="false" aria-label="Démarrer la dictée vocale">
+          <span class="mic-btn__waves" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+          <svg class="mic-btn__icon" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
+            <path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12Z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="action-row">
+        <button type="button" class="btn btn--ghost" id="btn-clear-report">Effacer</button>
+        <button type="button" class="btn btn--secondary" id="btn-save-as-note">Enregistrer en note</button>
+        <button type="button" class="btn btn--primary" id="btn-export-pdf">Exporter en PDF</button>
+      </div>
+
+      <div class="history">
+        <h2 class="history__title">Comptes-rendus enregistrés</h2>
+        <ul id="reports-list" class="reports-list"></ul>
+        <p id="reports-empty" class="empty-state" hidden>Aucun compte-rendu enregistré pour l'instant. Exportez un PDF pour le retrouver ici.</p>
+      </div>
+
+    </section>
+
+    <!-- Vue Notes -->
+    <section id="view-notes" class="view" data-view="notes" hidden>
+      <div class="view-notes__header">
+        <h2>Notes de séance</h2>
+        <button type="button" class="btn btn--primary btn--sm" id="btn-new-note">+ Nouvelle note</button>
+      </div>
+      <ul id="notes-list" class="notes-list"></ul>
+      <p id="notes-empty" class="empty-state" hidden>Aucune note pour le moment. Créez-en une pour commencer.</p>
+    </section>
+
+  </main>
+
+  <!-- Bottom navigation -->
+  <nav class="bottom-nav" aria-label="Navigation principale">
+    <button type="button" class="bottom-nav__btn is-active" data-nav="compte-rendu">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 1.5V8h4.5L14 3.5ZM7 12h10v1.5H7V12Zm0 4h10v1.5H7V16Zm0-8h5v1.5H7V8Z"/></svg>
+      <span>Compte-rendu</span>
+    </button>
+    <button type="button" class="bottom-nav__btn" data-nav="notes">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M4 4h16v2H4V4Zm0 5h16v2H4V9Zm0 5h10v2H4v-2Zm0 5h10v2H4v-2Zm14-3 4 4-4 4v-3a4 4 0 0 1-4-4h1.5a2.5 2.5 0 0 0 2.5 2.5V16Z"/></svg>
+      <span>Notes</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- Écran de verrouillage (Netlify Identity) -->
+<div class="lock-screen" id="lock-screen">
+  <div class="lock-screen__card">
+    <div class="lock-screen__brand">
+      <img src="logo-assets/appicon-square.svg" alt="" class="lock-screen__glyph">
+      <span class="lock-screen__wordmark">Dictavoix</span>
+    </div>
+    <p class="lock-screen__text">Application réservée aux praticiens autorisés. Connectez-vous pour continuer.</p>
+    <button type="button" class="btn btn--primary" id="btn-lock-login">Se connecter</button>
+    <p class="lock-screen__status" id="lock-status" aria-live="polite"></p>
+  </div>
+</div>
+
+<!-- Modale Profil -->
+<div class="modal-overlay" id="modal-profile" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-profile-title">
+    <div class="modal__header">
+      <h2 id="modal-profile-title">Profil praticien</h2>
+      <button type="button" class="icon-btn" id="btn-close-profile" aria-label="Fermer">✕</button>
+    </div>
+    <form id="form-profile" class="modal__body">
+      <div class="field">
+        <label for="input-practitioner-name">Nom du praticien</label>
+        <input type="text" id="input-practitioner-name" placeholder="Dr. Prénom Nom" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="input-practitioner-contact">Coordonnées (optionnel)</label>
+        <textarea id="input-practitioner-contact" placeholder="Adresse, téléphone, email… (affiché sur le PDF)" rows="3"></textarea>
+      </div>
+      <div class="field">
+        <label for="input-logo">Logo (en-tête du PDF)</label>
+        <input type="file" id="input-logo" accept="image/*">
+        <div class="logo-preview" id="logo-preview" hidden>
+          <img id="logo-preview-img" alt="Aperçu du logo">
+          <button type="button" class="btn btn--ghost btn--sm" id="btn-remove-logo">Retirer le logo</button>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button type="submit" class="btn btn--primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modale Note -->
+<div class="modal-overlay" id="modal-note" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-note-title">
+    <div class="modal__header">
+      <h2 id="modal-note-title">Nouvelle note</h2>
+      <button type="button" class="icon-btn" id="btn-close-note" aria-label="Fermer">✕</button>
+    </div>
+    <form id="form-note" class="modal__body">
+      <input type="hidden" id="input-note-id">
+      <div class="field">
+        <label for="input-note-title">Titre (optionnel)</label>
+        <input type="text" id="input-note-title" placeholder="Généré automatiquement si vide" autocomplete="off">
+      </div>
+      <div class="field field--grow">
+        <div class="field__label-row">
+          <label for="textarea-note-content">Contenu</label>
+          <button type="button" class="mic-btn mic-btn--sm" id="btn-note-mic" aria-pressed="false" aria-label="Démarrer la dictée vocale">
+            <span class="mic-btn__waves" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </span>
+            <svg class="mic-btn__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12Z"/>
+            </svg>
+          </button>
+        </div>
+        <textarea id="textarea-note-content" placeholder="Notez vos observations…"></textarea>
+        <p id="note-speech-status" class="speech-status" aria-live="polite"></p>
+      </div>
+      <div class="modal__footer modal__footer--split">
+        <button type="button" class="btn btn--secondary" id="btn-transfer-note">Transférer vers Compte-rendu</button>
+        <button type="submit" class="btn btn--primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modale de prévisualisation PDF -->
+<div class="modal-overlay" id="modal-pdf-preview" hidden>
+  <div class="modal modal--pdf" role="dialog" aria-modal="true" aria-labelledby="modal-pdf-preview-title">
+    <div class="modal__header">
+      <h2 id="modal-pdf-preview-title">Aperçu du PDF</h2>
+      <button type="button" class="icon-btn" id="btn-close-pdf-preview" aria-label="Fermer">✕</button>
+    </div>
+    <div class="modal__body modal__body--pdf">
+      <div id="pdf-preview-container" class="pdf-preview-container">
+        <p class="pdf-preview-status">Génération de l'aperçu…</p>
+      </div>
+      <div class="modal__footer">
+        <button type="button" class="btn btn--ghost" id="btn-pdf-preview-edit">Modifier</button>
+        <button type="button" class="btn btn--primary" id="btn-pdf-preview-confirm">Enregistrer le PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modale de confirmation générique -->
+<div class="modal-overlay" id="modal-confirm" hidden>
+  <div class="modal modal--sm" role="alertdialog" aria-modal="true" aria-labelledby="modal-confirm-title">
+    <div class="modal__body">
+      <p id="modal-confirm-title" class="modal-confirm__message"></p>
+      <div class="modal__footer">
+        <button type="button" class="btn btn--ghost" id="btn-confirm-cancel">Annuler</button>
+        <button type="button" class="btn btn--danger" id="btn-confirm-ok">Confirmer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modale Mentions légales & confidentialité -->
+<div class="modal-overlay" id="modal-legal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-legal-title">
+    <div class="modal__header">
+      <h2 id="modal-legal-title">Mentions légales &amp; confidentialité</h2>
+      <button type="button" class="icon-btn" id="btn-close-legal" aria-label="Fermer">✕</button>
+    </div>
+    <div class="modal__body">
+      <div class="legal-section">
+        <h3>Mentions légales</h3>
+        <p><strong>Éditeur</strong><br>
+        Service CB<br>
+        Auto-entrepreneur<br>
+        Email de contact : servicecb26@gmail.com</p>
+
+        <p><strong>Directeur de la publication</strong><br>
+        CONSTANT Barbara</p>
+
+        <p><strong>Hébergement</strong><br>
+        Netlify, Inc.<br>
+        101 2nd Street<br>
+        San Francisco, CA 94105-2239, USA<br>
+        support@netlify.com<br>
+        https://www.netlify.com</p>
+
+        <p><strong>Propriété intellectuelle</strong><br>
+        L'ensemble des éléments (textes, graphismes, logo, logiciel) constituant cette application est la propriété exclusive de Dictavoix, sauf mention contraire, et est protégé par le droit de la propriété intellectuelle.</p>
+      </div>
+
+      <div class="legal-section">
+        <h3>Politique de confidentialité</h3>
+        <p>Cette application ne dispose d'aucun serveur de stockage de données. Toutes les informations que vous saisissez (notes, comptes-rendus, coordonnées de vos clients) sont enregistrées exclusivement sur votre appareil, dans la mémoire locale de votre navigateur (localStorage).</p>
+
+        <p><strong>Conséquences pratiques :</strong></p>
+        <ul>
+          <li>Personne d'autre que vous n'a accès à ces données, y compris l'éditeur de l'application.</li>
+          <li>Ces données ne sont pas transmises à un serveur distant.</li>
+          <li>Si vous changez de navigateur ou d'appareil, ou si vous videz le cache de votre navigateur, ces données seront perdues. Pensez à exporter régulièrement vos comptes-rendus en PDF.</li>
+        </ul>
+
+        <p><strong>Dictée vocale</strong><br>
+        La fonction de dictée vocale utilise la reconnaissance vocale intégrée à votre navigateur (Web Speech API). Selon le navigateur utilisé (par ex. Google Chrome), l'audio capturé par votre microphone peut être transmis aux serveurs de l'éditeur du navigateur (par ex. Google) pour être converti en texte. Aucun enregistrement audio n'est conservé par l'éditeur de l'application ; seul le texte résultant reste stocké localement sur votre appareil.</p>
+
+        <p><strong>Responsabilité de l'utilisateur</strong><br>
+        En tant qu'utilisateur professionnel, vous restez seul responsable des données de vos clients que vous saisissez dans l'application, y compris de leur confidentialité et de leur conformité avec la réglementation applicable à votre activité (RGPD notamment, si vous traitez des données à caractère personnel de vos clients). L'éditeur de l'application n'a accès à aucune de ces données et n'agit pas en tant que sous-traitant au sens du RGPD.</p>
+
+        <p><strong>Contact</strong><br>
+        Pour toute question relative à cette politique : servicecb26@gmail.com</p>
+
+        <p class="legal-credit">by service CB</p>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--primary" id="btn-close-legal-footer">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+<script src="js/auth.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script type="module">
+  import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.7.284/build/pdf.min.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.7.284/build/pdf.worker.min.mjs';
+  window.pdfjsLib = pdfjsLib;
+  window.dispatchEvent(new Event('pdfjslib-ready'));
+</script>
+<script src="js/storage.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/speech.js"></script>
+<script src="js/pdf.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
