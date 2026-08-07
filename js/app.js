@@ -230,10 +230,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let pendingPdf = null;
 
-  function waitForPdfjs() {
+  function waitForPdfjs(timeoutMs = 8000) {
     if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
-    return new Promise((resolve) => {
-      window.addEventListener('pdfjslib-ready', () => resolve(window.pdfjsLib), { once: true });
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Délai dépassé pour le chargement de PDF.js')), timeoutMs);
+      window.addEventListener('pdfjslib-ready', () => {
+        clearTimeout(timer);
+        resolve(window.pdfjsLib);
+      }, { once: true });
     });
   }
 
@@ -246,14 +250,27 @@ document.addEventListener('DOMContentLoaded', () => {
     pdfPreviewContainer.appendChild(p);
   }
 
+  function withTimeout(promise, timeoutMs, message) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error(message)), timeoutMs)),
+    ]);
+  }
+
   /* Rendu de chaque page du PDF sur un <canvas> : fiable sur tous les navigateurs,
-     contrairement à un <iframe> pointant vers le lecteur PDF natif (rendu noir sur certains). */
+     contrairement à un <iframe> pointant vers le lecteur PDF natif (rendu noir sur certains).
+     Un délai de sécurité évite de rester bloqué sur "Génération de l'aperçu…" indéfiniment
+     si la bibliothèque PDF.js ne se charge pas (réseau, navigateur incompatible…). */
   async function renderPdfPreview(doc) {
     setPdfPreviewStatus('Génération de l’aperçu…');
     try {
       const pdfjsLib = await waitForPdfjs();
       const arrayBuffer = doc.output('arraybuffer');
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pdf = await withTimeout(
+        pdfjsLib.getDocument({ data: arrayBuffer }).promise,
+        10000,
+        'Délai dépassé lors du chargement du PDF'
+      );
       pdfPreviewContainer.innerHTML = '';
       const containerWidth = pdfPreviewContainer.clientWidth - 28 || 600;
       for (let i = 1; i <= pdf.numPages; i++) {
@@ -266,7 +283,11 @@ document.addEventListener('DOMContentLoaded', () => {
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         pdfPreviewContainer.appendChild(canvas);
-        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        await withTimeout(
+          page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise,
+          10000,
+          'Délai dépassé lors du rendu de la page'
+        );
       }
     } catch (err) {
       console.error(err);

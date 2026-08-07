@@ -13,6 +13,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dictavoix</title>
 <meta name="theme-color" content="#0b3d3c">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dictavoix">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -48,7 +57,7 @@
       <button type="button" class="icon-btn" id="btn-logout" aria-label="Se déconnecter" title="Se déconnecter" hidden>
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5v-2H5V5h5V3Zm7.59 8L14 7.41 15.41 6 21 11.59 15.41 17 14 15.59 17.59 12H9v-2h8.59Z"/></svg>
       </button>
-      <button type="button" class="icon-btn" id="btn-open-profile" aria-label="Profil praticien" title="Profil praticien">
+      <button type="button" class="icon-btn" id="btn-open-profile" aria-label="Profil" title="Profil">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5Z"/></svg>
       </button>
       <button type="button" class="icon-btn" id="btn-open-legal" aria-label="Mentions légales et confidentialité" title="Mentions légales et confidentialité">
@@ -72,8 +81,8 @@
       </div>
 
       <div class="field">
-        <label for="input-patient-name">Nom et prénom</label>
-        <input type="text" id="input-patient-name" placeholder="Nom et prénom du patient" autocomplete="off">
+        <label for="input-patient-name">Nom</label>
+        <input type="text" id="input-patient-name" placeholder="Nom du patient" autocomplete="off">
       </div>
 
       <div class="field field--grow">
@@ -151,7 +160,7 @@
 <div class="modal-overlay" id="modal-profile" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-profile-title">
     <div class="modal__header">
-      <h2 id="modal-profile-title">Profil praticien</h2>
+      <h2 id="modal-profile-title">Profil</h2>
       <button type="button" class="icon-btn" id="btn-close-profile" aria-label="Fermer">✕</button>
     </div>
     <form id="form-profile" class="modal__body">
@@ -312,8 +321,8 @@
 <script src="js/auth.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
-  import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.7.284/build/pdf.min.mjs';
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.7.284/build/pdf.worker.min.mjs';
+  import * as pdfjsLib from './vendor/pdfjs/pdf.min.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdfjs/pdf.worker.min.mjs';
   window.pdfjsLib = pdfjsLib;
   window.dispatchEvent(new Event('pdfjslib-ready'));
 </script>
