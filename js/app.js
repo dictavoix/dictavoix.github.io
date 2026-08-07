@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let pendingPdf = null;
 
-  function waitForPdfjs(timeoutMs = 8000) {
+  function waitForPdfjs(timeoutMs = 20000) {
     if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Délai dépassé pour le chargement de PDF.js')), timeoutMs);
@@ -268,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const arrayBuffer = doc.output('arraybuffer');
       const pdf = await withTimeout(
         pdfjsLib.getDocument({ data: arrayBuffer }).promise,
-        10000,
+        20000,
         'Délai dépassé lors du chargement du PDF'
       );
       pdfPreviewContainer.innerHTML = '';
@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pdfPreviewContainer.appendChild(canvas);
         await withTimeout(
           page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise,
-          10000,
+          15000,
           'Délai dépassé lors du rendu de la page'
         );
       }
