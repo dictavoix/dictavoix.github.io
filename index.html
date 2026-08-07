@@ -143,16 +143,59 @@
 
 </div>
 
-<!-- Écran de verrouillage (Netlify Identity) -->
+<!-- Écran de verrouillage (Supabase Auth) -->
 <div class="lock-screen" id="lock-screen">
   <div class="lock-screen__card">
     <div class="lock-screen__brand">
       <img src="logo-assets/appicon-square.svg" alt="" class="lock-screen__glyph">
       <span class="lock-screen__wordmark">Dictavoix</span>
     </div>
-    <p class="lock-screen__text">Application réservée aux praticiens autorisés. Connectez-vous pour continuer.</p>
-    <button type="button" class="btn btn--primary" id="btn-lock-login">Se connecter</button>
-    <p class="lock-screen__status" id="lock-status" aria-live="polite"></p>
+
+    <form class="lock-form" id="form-login">
+      <p class="lock-screen__text">Application réservée aux personnes autorisées. Connectez-vous pour continuer.</p>
+
+      <label for="login-email">Email</label>
+      <input type="email" id="login-email" autocomplete="username" required>
+
+      <label for="login-password">Mot de passe</label>
+      <div class="password-field">
+        <input type="password" id="login-password" autocomplete="current-password" required>
+        <button type="button" class="btn-toggle-password" data-target="login-password" aria-label="Afficher le mot de passe">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 5c-5 0-9.27 3.11-11 7.5 1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+        </button>
+      </div>
+
+      <label class="checkbox-label">
+        <input type="checkbox" id="login-remember" checked>
+        Rester connecté
+      </label>
+
+      <button type="submit" class="btn btn--primary">Se connecter</button>
+      <p class="lock-screen__status" id="lock-status" aria-live="polite"></p>
+    </form>
+
+    <form class="lock-form" id="form-set-password" hidden>
+      <p class="lock-screen__text">Bienvenue ! Choisissez votre mot de passe pour activer votre compte.</p>
+
+      <label for="setpw-password">Nouveau mot de passe</label>
+      <div class="password-field">
+        <input type="password" id="setpw-password" autocomplete="new-password" minlength="8" required>
+        <button type="button" class="btn-toggle-password" data-target="setpw-password" aria-label="Afficher le mot de passe">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 5c-5 0-9.27 3.11-11 7.5 1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+        </button>
+      </div>
+
+      <label for="setpw-password-confirm">Confirmer le mot de passe</label>
+      <div class="password-field">
+        <input type="password" id="setpw-password-confirm" autocomplete="new-password" minlength="8" required>
+        <button type="button" class="btn-toggle-password" data-target="setpw-password-confirm" aria-label="Afficher le mot de passe">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 5c-5 0-9.27 3.11-11 7.5 1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+        </button>
+      </div>
+
+      <button type="submit" class="btn btn--primary">Activer mon compte</button>
+      <p class="lock-screen__status" id="setpw-status" aria-live="polite"></p>
+    </form>
   </div>
 </div>
 
@@ -317,7 +360,8 @@
 <!-- Toasts -->
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+<script src="vendor/supabase/supabase.min.js"></script>
+<script src="js/supabase-config.js"></script>
 <script src="js/auth.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">

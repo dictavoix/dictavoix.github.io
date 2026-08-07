@@ -805,13 +805,10 @@ input, textarea {
   }
 }
 
-/* ---------- Écran de verrouillage (Netlify Identity) ---------- */
+/* ---------- Écran de verrouillage (Supabase Auth) ---------- */
 .lock-screen {
   position: fixed;
   inset: 0;
-  /* Doit rester sous la fenêtre du widget Netlify Identity (z-index: 99),
-     sinon ses modales (connexion, complétion d'invitation...) restent
-     invisibles derrière cet écran. */
   z-index: 10;
   display: flex;
   align-items: center;
@@ -870,4 +867,94 @@ input, textarea {
 
 .lock-screen__status[data-tone="error"] {
   color: var(--danger-text);
+}
+
+.lock-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+}
+
+.lock-form label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-top: 8px;
+}
+
+.lock-form input[type="email"],
+.lock-form input[type="password"],
+.lock-form input[type="text"] {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 12px;
+  font-size: 0.98rem;
+  background: var(--surface);
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lock-form input:focus {
+  border-color: var(--ink-accent);
+  box-shadow: var(--focus-ring);
+}
+
+.password-field {
+  position: relative;
+  display: flex;
+}
+
+.password-field input {
+  padding-right: 42px;
+}
+
+.btn-toggle-password {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.btn-toggle-password:hover {
+  background: var(--surface-hover);
+}
+
+.btn-toggle-password.is-visible {
+  color: var(--ink-accent);
+}
+
+.checkbox-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ink-accent);
+}
+
+.lock-form .btn {
+  margin-top: 14px;
+  width: 100%;
 }
