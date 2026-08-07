@@ -210,8 +210,8 @@
     </div>
     <form id="form-profile" class="modal__body">
       <div class="field">
-        <label for="input-practitioner-name">Nom du praticien</label>
-        <input type="text" id="input-practitioner-name" placeholder="Dr. Prénom Nom" autocomplete="off">
+        <label for="input-practitioner-name">Nom</label>
+        <input type="text" id="input-practitioner-name" placeholder="Prénom Nom" autocomplete="off">
       </div>
       <div class="field">
         <label for="input-practitioner-contact">Coordonnées (optionnel)</label>
@@ -319,11 +319,14 @@
         CONSTANT Barbara</p>
 
         <p><strong>Hébergement</strong><br>
-        Netlify, Inc.<br>
-        101 2nd Street<br>
-        San Francisco, CA 94105-2239, USA<br>
-        support@netlify.com<br>
-        https://www.netlify.com</p>
+        GitHub, Inc. (GitHub Pages)<br>
+        88 Colin P. Kelly Jr. Street<br>
+        San Francisco, CA 94107, USA<br>
+        https://github.com</p>
+
+        <p><strong>Authentification</strong><br>
+        La connexion des utilisateurs (création de compte, mot de passe) est gérée par Supabase, prestataire indépendant.<br>
+        https://supabase.com</p>
 
         <p><strong>Propriété intellectuelle</strong><br>
         L'ensemble des éléments (textes, graphismes, logo, logiciel) constituant cette application est la propriété exclusive de Dictavoix, sauf mention contraire, et est protégé par le droit de la propriété intellectuelle.</p>
@@ -331,14 +334,17 @@
 
       <div class="legal-section">
         <h3>Politique de confidentialité</h3>
-        <p>Cette application ne dispose d'aucun serveur de stockage de données. Toutes les informations que vous saisissez (notes, comptes-rendus, coordonnées de vos clients) sont enregistrées exclusivement sur votre appareil, dans la mémoire locale de votre navigateur (localStorage).</p>
+        <p>Cette application ne dispose d'aucun serveur de stockage pour le contenu de vos comptes-rendus et notes. Toutes ces informations sont enregistrées exclusivement sur votre appareil, dans la mémoire locale de votre navigateur (localStorage).</p>
 
         <p><strong>Conséquences pratiques :</strong></p>
         <ul>
-          <li>Personne d'autre que vous n'a accès à ces données, y compris l'éditeur de l'application.</li>
-          <li>Ces données ne sont pas transmises à un serveur distant.</li>
+          <li>Personne d'autre que vous n'a accès au contenu de vos comptes-rendus et notes, y compris l'éditeur de l'application.</li>
+          <li>Ce contenu n'est jamais transmis à un serveur distant.</li>
           <li>Si vous changez de navigateur ou d'appareil, ou si vous videz le cache de votre navigateur, ces données seront perdues. Pensez à exporter régulièrement vos comptes-rendus en PDF.</li>
         </ul>
+
+        <p><strong>Compte et connexion</strong><br>
+        Pour sécuriser l'accès à l'application, seuls votre email et votre mot de passe sont gérés par Supabase, prestataire indépendant spécialisé dans l'authentification. Ces informations de connexion ne comprennent aucune donnée de vos clients/patients et restent distinctes du contenu de vos comptes-rendus, qui n'est jamais transmis à Supabase.</p>
 
         <p><strong>Dictée vocale</strong><br>
         La fonction de dictée vocale utilise la reconnaissance vocale intégrée à votre navigateur (Web Speech API). Selon le navigateur utilisé (par ex. Google Chrome), l'audio capturé par votre microphone peut être transmis aux serveurs de l'éditeur du navigateur (par ex. Google) pour être converti en texte. Aucun enregistrement audio n'est conservé par l'éditeur de l'application ; seul le texte résultant reste stocké localement sur votre appareil.</p>

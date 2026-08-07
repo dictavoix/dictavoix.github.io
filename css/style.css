@@ -149,12 +149,15 @@ input, textarea {
 
 /* ---------- Header ---------- */
 .app-header {
-  height: var(--header-height);
+  min-height: var(--header-height);
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  /* Sur iOS en PWA (ajoutée à l'écran d'accueil), la barre de statut est
+     translucide et superposée au contenu : sans cette marge, les boutons
+     du header se retrouvent sous l'encoche/l'horloge, inaccessibles. */
+  padding: env(safe-area-inset-top, 0) 16px 0;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -215,7 +218,7 @@ input, textarea {
 .app-main {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 16px 16px calc(var(--nav-height) + 24px);
+  padding: 16px 16px calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 24px);
   display: flex;
   flex-direction: column;
 }
@@ -469,7 +472,7 @@ input, textarea {
   left: 0;
   right: 0;
   bottom: 0;
-  height: var(--nav-height);
+  min-height: var(--nav-height);
   padding-bottom: env(safe-area-inset-bottom, 0);
   background: var(--surface);
   border-top: 1px solid var(--border);
@@ -794,7 +797,7 @@ input, textarea {
 /* ---------- Responsive: tablet/desktop ---------- */
 @media (min-width: 768px) {
   .app-main {
-    padding: 24px 24px calc(var(--nav-height) + 32px);
+    padding: 24px 24px calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 32px);
   }
   .action-row {
     justify-content: flex-end;

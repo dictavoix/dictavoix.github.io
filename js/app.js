@@ -280,11 +280,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         canvas.className = 'pdf-preview-page';
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+        /* Rendu à la densité de pixels réelle de l'écran (Retina/iPhone), sinon
+           le canvas est flou une fois affiché à sa taille CSS. */
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = Math.round(viewport.width * dpr);
+        canvas.height = Math.round(viewport.height * dpr);
+        canvas.style.width = viewport.width + 'px';
+        canvas.style.height = viewport.height + 'px';
         pdfPreviewContainer.appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
         await withTimeout(
-          page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise,
+          page.render({ canvasContext: ctx, viewport }).promise,
           15000,
           'Délai dépassé lors du rendu de la page'
         );
