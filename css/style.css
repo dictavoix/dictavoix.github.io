@@ -799,13 +799,6 @@ input, textarea {
   .app-main {
     padding: 24px 24px calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 32px);
   }
-  .action-row {
-    justify-content: flex-end;
-  }
-  .action-row .btn {
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
 }
 
 /* ---------- Écran de verrouillage (Supabase Auth) ---------- */
