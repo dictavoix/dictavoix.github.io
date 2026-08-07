@@ -400,9 +400,20 @@ input, textarea {
 /* ---------- Action row / buttons ---------- */
 .action-row {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
   justify-content: flex-end;
+}
+
+/* Sur mobile, les 3 boutons se partagent la ligne à parts égales plutôt que
+   de passer chacun à la ligne (le libellé peut alors passer sur 2 lignes). */
+.action-row .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  white-space: normal;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .btn {
@@ -787,6 +798,10 @@ input, textarea {
   }
   .action-row {
     justify-content: flex-end;
+  }
+  .action-row .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 }
 
