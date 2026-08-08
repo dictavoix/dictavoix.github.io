@@ -416,15 +416,22 @@ input, textarea {
 
 .photo-preview {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
   margin-top: 4px;
 }
 
-.photo-preview img {
-  max-width: 220px;
-  max-height: 220px;
+.photo-preview__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.photo-preview__item img {
+  max-width: 150px;
+  max-height: 150px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   object-fit: cover;

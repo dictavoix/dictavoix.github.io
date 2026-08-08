@@ -185,7 +185,7 @@ const PDF = (() => {
   }
 
   /* Construit le document jsPDF sans l'enregistrer (pour prévisualisation) */
-  function buildDoc({ patientName, content, profile, photo }) {
+  function buildDoc({ patientName, content, profile, photos }) {
     if (!window.jspdf || !window.jspdf.jsPDF) {
       throw new Error('La bibliothèque jsPDF est introuvable.');
     }
@@ -238,8 +238,10 @@ const PDF = (() => {
       cursorY += lineHeight;
     });
 
-    const format = photoFormat(photo);
-    if (format) {
+    const photoList = (photos || []).filter(Boolean);
+    photoList.forEach((photo, index) => {
+      const format = photoFormat(photo);
+      if (!format) return;
       try {
         const props = doc.getImageProperties(photo);
         let imgWidth = CONTENT_WIDTH;
@@ -256,14 +258,15 @@ const PDF = (() => {
         } else {
           cursorY += 4;
         }
-        drawSectionTag(doc, MARGIN, cursorY, 'PHOTO');
+        const tag = photoList.length > 1 ? `PHOTO ${index + 1}/${photoList.length}` : 'PHOTO';
+        drawSectionTag(doc, MARGIN, cursorY, tag);
         cursorY += 10;
         doc.addImage(photo, format, MARGIN, cursorY, imgWidth, imgHeight);
         cursorY += imgHeight;
       } catch (err) {
-        console.warn('Photo illisible, PDF généré sans la photo.', err);
+        console.warn('Photo illisible, ignorée dans le PDF.', err);
       }
-    }
+    });
 
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {

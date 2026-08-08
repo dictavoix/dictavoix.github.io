@@ -137,18 +137,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnRestoreDraft = document.getElementById('btn-restore-draft');
   const btnDiscardDraft = document.getElementById('btn-discard-draft');
 
-  /* ---- Photo jointe au compte-rendu ---- */
+  /* ---- Photos jointes au compte-rendu (plusieurs possibles) ---- */
   const inputReportPhoto = document.getElementById('input-report-photo');
   const btnAddPhoto = document.getElementById('btn-add-photo');
   const photoStatusEl = document.getElementById('photo-status');
   const photoPreviewEl = document.getElementById('photo-preview');
-  const photoPreviewImg = document.getElementById('photo-preview-img');
-  const btnRemovePhoto = document.getElementById('btn-remove-photo');
 
-  let currentPhotoFile = null;
-  let currentPhotoDataUrl = null;
-  let currentPhotoPath = null;
-  let photoPathPendingDeletion = null;
+  /* Chaque entrée : { key, dataUrl, file (si nouvelle, pas encore envoyée), path (si déjà envoyée) } */
+  let currentPhotos = [];
+  let photoPathsPendingDeletion = [];
+
+  function photoKey() {
+    return `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  }
 
   function setPhotoStatus(message, tone) {
     photoStatusEl.textContent = message || '';
@@ -156,78 +157,88 @@ document.addEventListener('DOMContentLoaded', () => {
     else delete photoStatusEl.dataset.tone;
   }
 
-  function showPhotoPreview(dataUrl) {
-    photoPreviewImg.src = dataUrl;
-    photoPreviewEl.hidden = false;
-  }
-
-  function resetPhotoState() {
-    currentPhotoFile = null;
-    currentPhotoDataUrl = null;
-    currentPhotoPath = null;
-    photoPathPendingDeletion = null;
-    photoPreviewEl.hidden = true;
-    photoPreviewImg.src = '';
-    setPhotoStatus('');
-  }
-
-  function loadExistingPhoto(path) {
-    resetPhotoState();
-    if (!path) return;
-    currentPhotoPath = path;
-    setPhotoStatus('Chargement de la photo…');
-    Photos.downloadAsDataUrl(path).then((dataUrl) => {
-      setPhotoStatus('');
-      if (!dataUrl) return;
-      currentPhotoDataUrl = dataUrl;
-      showPhotoPreview(dataUrl);
+  function renderPhotoPreviews() {
+    photoPreviewEl.innerHTML = '';
+    photoPreviewEl.hidden = currentPhotos.length === 0;
+    currentPhotos.forEach((entry) => {
+      const item = document.createElement('div');
+      item.className = 'photo-preview__item';
+      item.innerHTML = `
+        <img alt="Photo jointe">
+        <button type="button" class="btn btn--ghost btn--sm">Retirer</button>
+      `;
+      item.querySelector('img').src = entry.dataUrl;
+      item.querySelector('button').addEventListener('click', () => removePhoto(entry.key));
+      photoPreviewEl.appendChild(item);
     });
   }
 
-  async function ensurePhotoUploaded() {
-    if (photoPathPendingDeletion) {
-      await Photos.remove(photoPathPendingDeletion);
-      photoPathPendingDeletion = null;
+  function removePhoto(key) {
+    const entry = currentPhotos.find((p) => p.key === key);
+    if (!entry) return;
+    if (entry.path) photoPathsPendingDeletion.push(entry.path);
+    currentPhotos = currentPhotos.filter((p) => p.key !== key);
+    renderPhotoPreviews();
+  }
+
+  function resetPhotoState() {
+    currentPhotos = [];
+    photoPathsPendingDeletion = [];
+    photoPreviewEl.innerHTML = '';
+    photoPreviewEl.hidden = true;
+    setPhotoStatus('');
+  }
+
+  function loadExistingPhotos(paths) {
+    resetPhotoState();
+    const list = (paths || []).filter(Boolean);
+    if (!list.length) return;
+    setPhotoStatus('Chargement des photos…');
+    Promise.all(list.map((path) => Photos.downloadAsDataUrl(path).then((dataUrl) => ({ path, dataUrl })))).then((results) => {
+      setPhotoStatus('');
+      results.forEach(({ path, dataUrl }) => {
+        if (!dataUrl) return;
+        currentPhotos.push({ key: photoKey(), dataUrl, file: null, path });
+      });
+      renderPhotoPreviews();
+    });
+  }
+
+  async function ensurePhotosUploaded() {
+    if (photoPathsPendingDeletion.length) {
+      await Photos.removeMany(photoPathsPendingDeletion);
+      photoPathsPendingDeletion = [];
     }
-    if (currentPhotoFile && !currentPhotoPath) {
-      currentPhotoPath = await Photos.upload(currentPhotoFile);
-      currentPhotoFile = null;
+    for (const entry of currentPhotos) {
+      if (entry.file && !entry.path) {
+        entry.path = await Photos.upload(entry.file);
+        entry.file = null;
+      }
     }
-    return currentPhotoPath;
+    return currentPhotos.map((entry) => entry.path).filter(Boolean);
   }
 
   btnAddPhoto.addEventListener('click', () => inputReportPhoto.click());
 
   inputReportPhoto.addEventListener('change', async () => {
-    const file = inputReportPhoto.files[0];
+    const files = Array.from(inputReportPhoto.files || []);
     inputReportPhoto.value = '';
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setPhotoStatus('Veuillez choisir une image.', 'error');
-      return;
+    if (!files.length) return;
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        setPhotoStatus('Veuillez choisir une image.', 'error');
+        continue;
+      }
+      try {
+        const dataUrl = await Photos.fileToDataUrl(file);
+        currentPhotos.push({ key: photoKey(), dataUrl, file, path: null });
+      } catch (err) {
+        console.error(err);
+        setPhotoStatus('Impossible de charger cette photo.', 'error');
+      }
     }
-    try {
-      const dataUrl = await Photos.fileToDataUrl(file);
-      if (currentPhotoPath) photoPathPendingDeletion = currentPhotoPath;
-      currentPhotoFile = file;
-      currentPhotoDataUrl = dataUrl;
-      currentPhotoPath = null;
-      setPhotoStatus('');
-      showPhotoPreview(dataUrl);
-    } catch (err) {
-      console.error(err);
-      setPhotoStatus("Impossible de charger cette photo.", 'error');
-    }
-  });
-
-  btnRemovePhoto.addEventListener('click', () => {
-    if (currentPhotoPath) photoPathPendingDeletion = currentPhotoPath;
-    currentPhotoFile = null;
-    currentPhotoDataUrl = null;
-    currentPhotoPath = null;
-    photoPreviewEl.hidden = true;
-    photoPreviewImg.src = '';
     setPhotoStatus('');
+    renderPhotoPreviews();
   });
 
   function setSpeechStatus(message, tone = '') {
@@ -471,7 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         /* Même précaution : on enregistre dans le dossier client avant de
            déclencher le téléchargement, qui peut faire quitter la page sur mobile. */
-        const photoPath = await ensurePhotoUploaded();
+        const photoPaths = await ensurePhotosUploaded();
         if (editingReportId) {
           const { error } = await window.dictavoixSupabase
             .from('reports')
@@ -479,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
               client_id: client.id,
               patient_name: (patientName || '').trim(),
               content,
-              photo_path: photoPath,
+              photo_paths: photoPaths,
               updated_at: new Date().toISOString(),
             })
             .eq('id', editingReportId);
@@ -492,7 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
             client_id: client.id,
             patient_name: (patientName || '').trim(),
             content,
-            photo_path: photoPath,
+            photo_paths: photoPaths,
           });
           if (error) throw error;
         }
@@ -516,7 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const patientName = inputPatientName.value;
     const content = textareaReport.value;
     try {
-      const { doc, fileName } = PDF.buildDoc({ patientName, content, profile: Storage.getProfile(), photo: currentPhotoDataUrl });
+      const { doc, fileName } = PDF.buildDoc({ patientName, content, profile: Storage.getProfile(), photos: currentPhotos.map((p) => p.dataUrl) });
       pendingPdf = { doc, fileName, patientName, content };
       UI.openModal(modalPdfPreview);
       renderPdfPreview(doc);
@@ -545,23 +556,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function saveReportRecord({ patientName, content }) {
-    const photoPath = await ensurePhotoUploaded();
+    const photoPaths = await ensurePhotosUploaded();
     const { data: userData } = await window.dictavoixSupabase.auth.getUser();
     const { error } = await window.dictavoixSupabase.from('reports').insert({
       user_id: userData.user.id,
       patient_name: (patientName || '').trim(),
       content,
-      photo_path: photoPath,
+      photo_paths: photoPaths,
     });
     if (error) console.error('saveReportRecord', error);
     await renderReportsList();
   }
 
   async function updateReportRecord(id, { patientName, content }) {
-    const photoPath = await ensurePhotoUploaded();
+    const photoPaths = await ensurePhotosUploaded();
     const { error } = await window.dictavoixSupabase
       .from('reports')
-      .update({ patient_name: (patientName || '').trim(), content, photo_path: photoPath, updated_at: new Date().toISOString() })
+      .update({ patient_name: (patientName || '').trim(), content, photo_paths: photoPaths, updated_at: new Date().toISOString() })
       .eq('id', id);
     if (error) console.error('updateReportRecord', error);
     await renderReportsList();
@@ -607,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
         editingReportId = report.id;
         inputPatientName.value = report.patient_name || '';
         textareaReport.value = report.content;
-        loadExistingPhoto(report.photo_path);
+        loadExistingPhotos(report.photo_paths);
         lastSavedSnapshot = currentSnapshot();
         switchView('compte-rendu');
         UI.toast('Compte-rendu chargé pour modification.', 'success');
@@ -615,8 +626,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       li.querySelector('[data-action="download"]').addEventListener('click', async () => {
         try {
-          const photo = report.photo_path ? await Photos.downloadAsDataUrl(report.photo_path) : null;
-          PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photo });
+          const photos = await Photos.downloadManyAsDataUrl(report.photo_paths);
+          PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
         } catch (err) {
           console.error(err);
           UI.toast("Échec de l'export PDF.", 'error');
@@ -644,7 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!ok) return;
         const { error: delError } = await window.dictavoixSupabase.from('reports').delete().eq('id', report.id);
         if (delError) console.error(delError);
-        if (report.photo_path) Photos.remove(report.photo_path);
+        if (report.photo_paths && report.photo_paths.length) Photos.removeMany(report.photo_paths);
         renderReportsList();
         UI.toast('Compte-rendu supprimé de l’historique.', 'success');
       });
@@ -1030,8 +1041,8 @@ document.addEventListener('DOMContentLoaded', () => {
         li.querySelector('.list-card__meta').textContent = `Exporté le ${formatReportDate(new Date(report.created_at).getTime())}`;
         li.querySelector('[data-action="download"]').addEventListener('click', async () => {
           try {
-            const photo = report.photo_path ? await Photos.downloadAsDataUrl(report.photo_path) : null;
-            PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photo });
+            const photos = await Photos.downloadManyAsDataUrl(report.photo_paths);
+            PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
           } catch (err) {
             console.error(err);
             UI.toast("Échec de l'export PDF.", 'error');
@@ -1041,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
           editingReportId = report.id;
           inputPatientName.value = report.patient_name || '';
           textareaReport.value = report.content;
-          loadExistingPhoto(report.photo_path);
+          loadExistingPhotos(report.photo_paths);
           lastSavedSnapshot = currentSnapshot();
           UI.closeModal(modalClient);
           switchView('compte-rendu');
@@ -1056,7 +1067,7 @@ document.addEventListener('DOMContentLoaded', () => {
             UI.toast('Échec de la suppression.', 'error');
             return;
           }
-          if (report.photo_path) Photos.remove(report.photo_path);
+          if (report.photo_paths && report.photo_paths.length) Photos.removeMany(report.photo_paths);
           renderClientHistory(clientId);
           UI.toast('Compte-rendu supprimé.', 'success');
         });

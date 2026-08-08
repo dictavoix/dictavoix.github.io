@@ -25,7 +25,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=14">
+<link rel="stylesheet" href="css/style.css?v=15">
 <link rel="modulepreload" href="vendor/pdfjs/pdf.min.mjs">
 <link rel="preload" href="vendor/pdfjs/pdf.worker.min.mjs" as="script" crossorigin>
 </head>
@@ -111,13 +111,10 @@
       </div>
 
       <div class="photo-row">
-        <input type="file" accept="image/*" id="input-report-photo" hidden>
-        <button type="button" class="btn btn--ghost" id="btn-add-photo">📷 Ajouter une photo</button>
+        <input type="file" accept="image/*" id="input-report-photo" multiple hidden>
+        <button type="button" class="btn btn--ghost" id="btn-add-photo">📷 Ajouter une ou plusieurs photos</button>
         <p id="photo-status" class="speech-status" aria-live="polite"></p>
-        <div class="photo-preview" id="photo-preview" hidden>
-          <img id="photo-preview-img" alt="Photo jointe">
-          <button type="button" class="btn btn--ghost btn--sm" id="btn-remove-photo">Retirer la photo</button>
-        </div>
+        <div class="photo-preview" id="photo-preview" hidden></div>
       </div>
 
       <div class="action-row">
@@ -486,8 +483,8 @@
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
 <script src="vendor/supabase/supabase.min.js"></script>
-<script src="js/supabase-config.js?v=14"></script>
-<script src="js/auth.js?v=14"></script>
+<script src="js/supabase-config.js?v=15"></script>
+<script src="js/auth.js?v=15"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import * as pdfjsLib from './vendor/pdfjs/pdf.min.mjs';
@@ -495,13 +492,13 @@
   window.pdfjsLib = pdfjsLib;
   window.dispatchEvent(new Event('pdfjslib-ready'));
 </script>
-<script src="js/storage.js?v=14"></script>
-<script src="js/ui.js?v=14"></script>
-<script src="js/speech.js?v=14"></script>
-<script src="js/pdf.js?v=14"></script>
-<script src="js/notes.js?v=14"></script>
-<script src="js/clients.js?v=14"></script>
-<script src="js/photos.js?v=14"></script>
-<script src="js/app.js?v=14"></script>
+<script src="js/storage.js?v=15"></script>
+<script src="js/ui.js?v=15"></script>
+<script src="js/speech.js?v=15"></script>
+<script src="js/pdf.js?v=15"></script>
+<script src="js/notes.js?v=15"></script>
+<script src="js/clients.js?v=15"></script>
+<script src="js/photos.js?v=15"></script>
+<script src="js/app.js?v=15"></script>
 </body>
 </html>

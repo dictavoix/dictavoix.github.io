@@ -47,5 +47,27 @@ const Photos = (() => {
     return blobToDataUrl(data);
   }
 
-  return { upload, remove, downloadAsDataUrl, fileToDataUrl };
+  async function uploadMany(files) {
+    const paths = [];
+    for (const file of files) {
+      paths.push(await upload(file));
+    }
+    return paths;
+  }
+
+  async function removeMany(paths) {
+    const list = (paths || []).filter(Boolean);
+    if (!list.length) return;
+    const { error } = await db().storage.from(BUCKET).remove(list);
+    if (error) console.error('Photos.removeMany', error);
+  }
+
+  async function downloadManyAsDataUrl(paths) {
+    const list = paths || [];
+    if (!list.length) return [];
+    const results = await Promise.all(list.map((path) => downloadAsDataUrl(path)));
+    return results.filter(Boolean);
+  }
+
+  return { upload, remove, downloadAsDataUrl, fileToDataUrl, uploadMany, removeMany, downloadManyAsDataUrl };
 })();
