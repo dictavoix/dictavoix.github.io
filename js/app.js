@@ -137,6 +137,99 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnRestoreDraft = document.getElementById('btn-restore-draft');
   const btnDiscardDraft = document.getElementById('btn-discard-draft');
 
+  /* ---- Photo jointe au compte-rendu ---- */
+  const inputReportPhoto = document.getElementById('input-report-photo');
+  const btnAddPhoto = document.getElementById('btn-add-photo');
+  const photoStatusEl = document.getElementById('photo-status');
+  const photoPreviewEl = document.getElementById('photo-preview');
+  const photoPreviewImg = document.getElementById('photo-preview-img');
+  const btnRemovePhoto = document.getElementById('btn-remove-photo');
+
+  let currentPhotoFile = null;
+  let currentPhotoDataUrl = null;
+  let currentPhotoPath = null;
+  let photoPathPendingDeletion = null;
+
+  function setPhotoStatus(message, tone) {
+    photoStatusEl.textContent = message || '';
+    if (tone) photoStatusEl.dataset.tone = tone;
+    else delete photoStatusEl.dataset.tone;
+  }
+
+  function showPhotoPreview(dataUrl) {
+    photoPreviewImg.src = dataUrl;
+    photoPreviewEl.hidden = false;
+  }
+
+  function resetPhotoState() {
+    currentPhotoFile = null;
+    currentPhotoDataUrl = null;
+    currentPhotoPath = null;
+    photoPathPendingDeletion = null;
+    photoPreviewEl.hidden = true;
+    photoPreviewImg.src = '';
+    setPhotoStatus('');
+  }
+
+  function loadExistingPhoto(path) {
+    resetPhotoState();
+    if (!path) return;
+    currentPhotoPath = path;
+    setPhotoStatus('Chargement de la photo…');
+    Photos.downloadAsDataUrl(path).then((dataUrl) => {
+      setPhotoStatus('');
+      if (!dataUrl) return;
+      currentPhotoDataUrl = dataUrl;
+      showPhotoPreview(dataUrl);
+    });
+  }
+
+  async function ensurePhotoUploaded() {
+    if (photoPathPendingDeletion) {
+      await Photos.remove(photoPathPendingDeletion);
+      photoPathPendingDeletion = null;
+    }
+    if (currentPhotoFile && !currentPhotoPath) {
+      currentPhotoPath = await Photos.upload(currentPhotoFile);
+      currentPhotoFile = null;
+    }
+    return currentPhotoPath;
+  }
+
+  btnAddPhoto.addEventListener('click', () => inputReportPhoto.click());
+
+  inputReportPhoto.addEventListener('change', async () => {
+    const file = inputReportPhoto.files[0];
+    inputReportPhoto.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setPhotoStatus('Veuillez choisir une image.', 'error');
+      return;
+    }
+    try {
+      const dataUrl = await Photos.fileToDataUrl(file);
+      if (currentPhotoPath) photoPathPendingDeletion = currentPhotoPath;
+      currentPhotoFile = file;
+      currentPhotoDataUrl = dataUrl;
+      currentPhotoPath = null;
+      setPhotoStatus('');
+      showPhotoPreview(dataUrl);
+    } catch (err) {
+      console.error(err);
+      setPhotoStatus("Impossible de charger cette photo.", 'error');
+    }
+  });
+
+  btnRemovePhoto.addEventListener('click', () => {
+    if (currentPhotoPath) photoPathPendingDeletion = currentPhotoPath;
+    currentPhotoFile = null;
+    currentPhotoDataUrl = null;
+    currentPhotoPath = null;
+    photoPreviewEl.hidden = true;
+    photoPreviewImg.src = '';
+    setPhotoStatus('');
+  });
+
   function setSpeechStatus(message, tone = '') {
     speechStatus.textContent = message || '';
     if (tone) speechStatus.dataset.tone = tone;
@@ -206,6 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
     textareaReport.value = '';
     inputPatientName.value = '';
     editingReportId = null;
+    resetPhotoState();
     Storage.clearDraft();
     setSpeechStatus('');
     UI.toast('Compte-rendu effacé.', 'success');
@@ -377,6 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         /* Même précaution : on enregistre dans le dossier client avant de
            déclencher le téléchargement, qui peut faire quitter la page sur mobile. */
+        const photoPath = await ensurePhotoUploaded();
         if (editingReportId) {
           const { error } = await window.dictavoixSupabase
             .from('reports')
@@ -384,6 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
               client_id: client.id,
               patient_name: (patientName || '').trim(),
               content,
+              photo_path: photoPath,
               updated_at: new Date().toISOString(),
             })
             .eq('id', editingReportId);
@@ -396,6 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
             client_id: client.id,
             patient_name: (patientName || '').trim(),
             content,
+            photo_path: photoPath,
           });
           if (error) throw error;
         }
@@ -419,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const patientName = inputPatientName.value;
     const content = textareaReport.value;
     try {
-      const { doc, fileName } = PDF.buildDoc({ patientName, content, profile: Storage.getProfile() });
+      const { doc, fileName } = PDF.buildDoc({ patientName, content, profile: Storage.getProfile(), photo: currentPhotoDataUrl });
       pendingPdf = { doc, fileName, patientName, content };
       UI.openModal(modalPdfPreview);
       renderPdfPreview(doc);
@@ -448,20 +545,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function saveReportRecord({ patientName, content }) {
+    const photoPath = await ensurePhotoUploaded();
     const { data: userData } = await window.dictavoixSupabase.auth.getUser();
     const { error } = await window.dictavoixSupabase.from('reports').insert({
       user_id: userData.user.id,
       patient_name: (patientName || '').trim(),
       content,
+      photo_path: photoPath,
     });
     if (error) console.error('saveReportRecord', error);
     await renderReportsList();
   }
 
   async function updateReportRecord(id, { patientName, content }) {
+    const photoPath = await ensurePhotoUploaded();
     const { error } = await window.dictavoixSupabase
       .from('reports')
-      .update({ patient_name: (patientName || '').trim(), content, updated_at: new Date().toISOString() })
+      .update({ patient_name: (patientName || '').trim(), content, photo_path: photoPath, updated_at: new Date().toISOString() })
       .eq('id', id);
     if (error) console.error('updateReportRecord', error);
     await renderReportsList();
@@ -507,14 +607,16 @@ document.addEventListener('DOMContentLoaded', () => {
         editingReportId = report.id;
         inputPatientName.value = report.patient_name || '';
         textareaReport.value = report.content;
+        loadExistingPhoto(report.photo_path);
         lastSavedSnapshot = currentSnapshot();
         switchView('compte-rendu');
         UI.toast('Compte-rendu chargé pour modification.', 'success');
       });
 
-      li.querySelector('[data-action="download"]').addEventListener('click', () => {
+      li.querySelector('[data-action="download"]').addEventListener('click', async () => {
         try {
-          PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile() });
+          const photo = report.photo_path ? await Photos.downloadAsDataUrl(report.photo_path) : null;
+          PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photo });
         } catch (err) {
           console.error(err);
           UI.toast("Échec de l'export PDF.", 'error');
@@ -542,6 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!ok) return;
         const { error: delError } = await window.dictavoixSupabase.from('reports').delete().eq('id', report.id);
         if (delError) console.error(delError);
+        if (report.photo_path) Photos.remove(report.photo_path);
         renderReportsList();
         UI.toast('Compte-rendu supprimé de l’historique.', 'success');
       });
@@ -925,9 +1028,10 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         li.querySelector('.list-card__excerpt').textContent = report.content;
         li.querySelector('.list-card__meta').textContent = `Exporté le ${formatReportDate(new Date(report.created_at).getTime())}`;
-        li.querySelector('[data-action="download"]').addEventListener('click', () => {
+        li.querySelector('[data-action="download"]').addEventListener('click', async () => {
           try {
-            PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile() });
+            const photo = report.photo_path ? await Photos.downloadAsDataUrl(report.photo_path) : null;
+            PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photo });
           } catch (err) {
             console.error(err);
             UI.toast("Échec de l'export PDF.", 'error');
@@ -937,6 +1041,7 @@ document.addEventListener('DOMContentLoaded', () => {
           editingReportId = report.id;
           inputPatientName.value = report.patient_name || '';
           textareaReport.value = report.content;
+          loadExistingPhoto(report.photo_path);
           lastSavedSnapshot = currentSnapshot();
           UI.closeModal(modalClient);
           switchView('compte-rendu');
@@ -951,6 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
             UI.toast('Échec de la suppression.', 'error');
             return;
           }
+          if (report.photo_path) Photos.remove(report.photo_path);
           renderClientHistory(clientId);
           UI.toast('Compte-rendu supprimé.', 'success');
         });

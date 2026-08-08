@@ -28,6 +28,7 @@ create table public.reports (
   client_id uuid references public.clients(id) on delete set null,
   patient_name text not null default '',
   content text not null default '',
+  photo_path text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -39,6 +40,17 @@ create policy "Users manage their own reports"
   for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- Stockage des photos jointes aux comptes-rendus (bucket privé, un dossier par utilisateur)
+insert into storage.buckets (id, name, public)
+values ('report-photos', 'report-photos', false)
+on conflict (id) do nothing;
+
+create policy "Users manage their own report photos"
+  on storage.objects
+  for all
+  using (bucket_id = 'report-photos' and (storage.foldername(name))[1] = auth.uid()::text)
+  with check (bucket_id = 'report-photos' and (storage.foldername(name))[1] = auth.uid()::text);
 
 create table public.session_notes (
   id uuid primary key default gen_random_uuid(),

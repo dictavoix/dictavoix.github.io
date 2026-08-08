@@ -178,8 +178,14 @@ const PDF = (() => {
     return `dictavoix_compte-rendu_${safePatient}_${new Date().toISOString().slice(0, 10)}.pdf`;
   }
 
+  function photoFormat(dataUrl) {
+    const match = /^data:image\/(png|jpe?g)/i.exec(dataUrl || '');
+    if (!match) return null;
+    return match[1].toLowerCase() === 'png' ? 'PNG' : 'JPEG';
+  }
+
   /* Construit le document jsPDF sans l'enregistrer (pour prévisualisation) */
-  function buildDoc({ patientName, content, profile }) {
+  function buildDoc({ patientName, content, profile, photo }) {
     if (!window.jspdf || !window.jspdf.jsPDF) {
       throw new Error('La bibliothèque jsPDF est introuvable.');
     }
@@ -231,6 +237,33 @@ const PDF = (() => {
       doc.text(line, MARGIN, cursorY);
       cursorY += lineHeight;
     });
+
+    const format = photoFormat(photo);
+    if (format) {
+      try {
+        const props = doc.getImageProperties(photo);
+        let imgWidth = CONTENT_WIDTH;
+        let imgHeight = (imgWidth * props.height) / props.width;
+        const maxHeight = 110;
+        if (imgHeight > maxHeight) {
+          imgHeight = maxHeight;
+          imgWidth = (imgHeight * props.width) / props.height;
+        }
+        if (cursorY + 10 + imgHeight > bottomLimit) {
+          doc.addPage();
+          drawContinuationHeader(doc, profile);
+          cursorY = CONTINUATION_HEIGHT + 14;
+        } else {
+          cursorY += 4;
+        }
+        drawSectionTag(doc, MARGIN, cursorY, 'PHOTO');
+        cursorY += 10;
+        doc.addImage(photo, format, MARGIN, cursorY, imgWidth, imgHeight);
+        cursorY += imgHeight;
+      } catch (err) {
+        console.warn('Photo illisible, PDF généré sans la photo.', err);
+      }
+    }
 
     const totalPages = doc.internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
