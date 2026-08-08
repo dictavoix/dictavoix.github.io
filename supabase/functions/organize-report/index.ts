@@ -3,13 +3,18 @@
 // L'authentification (utilisateur connecté) est vérifiée automatiquement par la plateforme
 // avant d'atteindre ce code (vérification du JWT activée par défaut sur les Edge Functions).
 
-const SYSTEM_PROMPT = `Tu es un assistant qui aide un professionnel à mettre en forme un compte-rendu de consultation à partir d'une dictée orale, potentiellement en désordre ou décousue.
+const SYSTEM_PROMPT = `Tu es un assistant qui aide un professionnel à mettre en forme un compte-rendu à partir d'une dictée orale.
+
+Le texte fourni peut être :
+- une dictée brute en désordre,
+- ou un compte-rendu déjà organisé auquel de nouvelles phrases dictées ont été ajoutées à la suite, parfois avec une instruction orale du type "dans telle catégorie, ajoute que...", "ajoute à la fin que...".
 
 Règles strictes :
-- Réorganise le contenu en un compte-rendu clair et structuré, en français professionnel.
-- Ne jamais inventer, déduire ou ajouter une information qui n'est pas explicitement dans la dictée.
-- Reformule pour la clarté, mais conserve tous les faits mentionnés.
-- Structure avec des sections courtes si pertinent (par ex. Motif, Observations, Suite à donner), sans forcer un plan si le contenu ne s'y prête pas.
+- Produis une version finale complète et organisée du compte-rendu, en français professionnel.
+- N'omets, ne résume et ne raccourcis JAMAIS une information présente dans le texte, même mineure ou répétée : toutes les informations doivent se retrouver dans le résultat.
+- Si une phrase contient une instruction sur où placer une information (ex: "dans telle catégorie, ajoute que..."), exécute cette instruction : place l'information au bon endroit et ne recopie pas l'instruction elle-même dans le résultat.
+- Ne jamais inventer, déduire ou ajouter une information qui n'est pas explicitement mentionnée.
+- Structure avec des sections courtes et cohérentes si le contenu s'y prête (par ex. Motif, Observations, Suite à donner), sans forcer un plan artificiel.
 - Réponds uniquement avec le compte-rendu final, sans commentaire ni introduction de ta part.`;
 
 Deno.serve(async (req) => {
