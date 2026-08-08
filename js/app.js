@@ -405,7 +405,8 @@ document.addEventListener('DOMContentLoaded', () => {
         renderReportsList();
       } catch (err) {
         console.error(err);
-        UI.toast("Impossible d'enregistrer dans le dossier client.", 'error');
+        const detail = (err && (err.message || err.error_description)) || JSON.stringify(err);
+        UI.toast(`Impossible d'enregistrer dans le dossier client : ${detail}`, 'error');
       }
     });
   });
@@ -528,7 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .eq('id', report.id);
           if (linkError) {
             console.error(linkError);
-            UI.toast("Impossible d'enregistrer dans le dossier client.", 'error');
+            UI.toast(`Impossible d'enregistrer dans le dossier client : ${linkError.message || JSON.stringify(linkError)}`, 'error');
             return;
           }
           UI.toast(`Compte-rendu rangé dans le dossier de ${Clients.fullName(client)}.`, 'success');
@@ -688,7 +689,8 @@ document.addEventListener('DOMContentLoaded', () => {
             UI.toast(`Note rangée dans le dossier de ${Clients.fullName(client)}.`, 'success');
             renderNotesList();
           } catch (err) {
-            UI.toast("Impossible d'enregistrer dans le dossier client.", 'error');
+            console.error(err);
+            UI.toast(`Impossible d'enregistrer dans le dossier client : ${(err && err.message) || JSON.stringify(err)}`, 'error');
           }
         });
       },
