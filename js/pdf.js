@@ -237,11 +237,26 @@ const PDF = (() => {
     return { doc, fileName: fileNameFor(patientName) };
   }
 
+  /* Sur iOS/Safari, doc.save() (téléchargement classique) navigue la page en cours
+     vers la visionneuse PDF native, sans moyen fiable de revenir à l'application.
+     On ouvre plutôt un vrai nouvel onglet, que l'on peut fermer normalement. */
+  function isIOSLike() {
+    return /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  function savePdfFile(doc, fileName) {
+    if (isIOSLike()) {
+      doc.output('dataurlnewwindow', { filename: fileName });
+    } else {
+      doc.save(fileName);
+    }
+  }
+
   /* Construit puis enregistre directement (téléchargement immédiat, sans prévisualisation) */
   function exportReport(params) {
     const { doc, fileName } = buildDoc(params);
-    doc.save(fileName);
+    savePdfFile(doc, fileName);
   }
 
-  return { buildDoc, exportReport };
+  return { buildDoc, exportReport, savePdfFile };
 })();

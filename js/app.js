@@ -350,18 +350,21 @@ document.addEventListener('DOMContentLoaded', () => {
   btnPdfPreviewEdit.addEventListener('click', closePdfPreview);
   modalPdfPreview.addEventListener('click', (e) => { if (e.target === modalPdfPreview) closePdfPreview(); });
 
-  btnPdfPreviewConfirm.addEventListener('click', () => {
+  btnPdfPreviewConfirm.addEventListener('click', async () => {
     if (!pendingPdf) return;
     const { doc, fileName, patientName, content } = pendingPdf;
-    doc.save(fileName);
+    /* Sur iOS/Safari, doc.save() peut faire quitter la page (ouverture du PDF
+       dans la visionneuse du navigateur) : l'enregistrement doit donc être
+       terminé AVANT, sinon il n'a jamais le temps de se faire. */
     if (editingReportId) {
-      updateReportRecord(editingReportId, { patientName, content });
+      await updateReportRecord(editingReportId, { patientName, content });
       editingReportId = null;
       UI.toast('Compte-rendu mis à jour dans l’historique.', 'success');
     } else {
-      saveReportRecord({ patientName, content });
+      await saveReportRecord({ patientName, content });
       UI.toast('PDF généré et enregistré.', 'success');
     }
+    PDF.savePdfFile(doc, fileName);
     closePdfPreview();
   });
 
@@ -372,7 +375,8 @@ document.addEventListener('DOMContentLoaded', () => {
     openClientPicker(async (client) => {
       const { doc, fileName, patientName, content } = pendingPdf;
       try {
-        doc.save(fileName);
+        /* Même précaution : on enregistre dans le dossier client avant de
+           déclencher le téléchargement, qui peut faire quitter la page sur mobile. */
         if (editingReportId) {
           const { error } = await window.dictavoixSupabase
             .from('reports')
@@ -395,6 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           if (error) throw error;
         }
+        PDF.savePdfFile(doc, fileName);
         UI.toast(`PDF généré et rangé dans le dossier de ${Clients.fullName(client)}.`, 'success');
         closePdfPreview();
         renderReportsList();
