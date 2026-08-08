@@ -44,6 +44,10 @@ const UI = (() => {
     confirmMessageEl.textContent = message;
     confirmOkBtn.textContent = okLabel;
     confirmCancelBtn.textContent = cancelLabel;
+    /* Même précaution que openModal : si on confirme depuis une autre modale déjà
+       ouverte (ex: suppression depuis la fiche client), cette boîte de dialogue doit
+       s'afficher au-dessus plutôt que de rester cachée derrière. */
+    document.body.appendChild(confirmOverlay);
     confirmOverlay.hidden = false;
     return new Promise((resolve) => {
       pendingResolve = resolve;
