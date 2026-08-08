@@ -87,27 +87,30 @@ const PDF = (() => {
 
     const heroHeight = Math.max(34, 20 + 9 + contactLines.length * 4.6);
 
-    setFill(doc, COLOR.teal900);
-    doc.rect(0, 0, PAGE_WIDTH, heroHeight, 'F');
+    /* En-tête clair : un simple bandeau de couleur en haut plutôt qu'un grand
+       aplat sombre, pour rester léger à l'impression (couleur ou N&B). */
     setFill(doc, COLOR.amber500);
-    doc.rect(0, heroHeight, PAGE_WIDTH, ACCENT_HEIGHT, 'F');
+    doc.rect(0, 0, PAGE_WIDTH, ACCENT_HEIGHT, 'F');
+    setDraw(doc, COLOR.border);
+    doc.setLineWidth(0.3);
+    doc.line(0, heroHeight, PAGE_WIDTH, heroHeight);
 
     if (hasLogo) {
       const logoY = (heroHeight - logoSize) / 2;
-      drawLogoBadge(doc, profile, MARGIN, logoY, logoSize, COLOR.teal900);
+      drawLogoBadge(doc, profile, MARGIN, logoY, logoSize, COLOR.white);
     }
 
     let textY = 20;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(17);
-    setText(doc, COLOR.white);
+    setText(doc, COLOR.teal900);
     doc.text(hasName ? profile.name.trim() : 'Informations', leftTextX, textY, { maxWidth: textMaxWidth });
 
     if (contactLines.length) {
       textY += 7;
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
-      setText(doc, [210, 227, 226]);
+      setText(doc, COLOR.textMuted);
       contactLines.forEach((line) => {
         doc.text(line, leftTextX, textY);
         textY += 4.6;
@@ -118,14 +121,15 @@ const PDF = (() => {
   }
 
   function drawContinuationHeader(doc, profile) {
-    setFill(doc, COLOR.teal700);
-    doc.rect(0, 0, PAGE_WIDTH, CONTINUATION_HEIGHT, 'F');
     setFill(doc, COLOR.amber500);
-    doc.rect(0, CONTINUATION_HEIGHT, PAGE_WIDTH, CONTINUATION_ACCENT, 'F');
+    doc.rect(0, 0, PAGE_WIDTH, CONTINUATION_ACCENT, 'F');
+    setDraw(doc, COLOR.border);
+    doc.setLineWidth(0.3);
+    doc.line(0, CONTINUATION_HEIGHT, PAGE_WIDTH, CONTINUATION_HEIGHT);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10.5);
-    setText(doc, COLOR.white);
+    setText(doc, COLOR.teal900);
     doc.text((profile && profile.name) || 'Informations', MARGIN, CONTINUATION_HEIGHT / 2 + 3.2);
   }
 
@@ -184,7 +188,7 @@ const PDF = (() => {
 
     const heroHeight = drawHeroHeader(doc, profile);
 
-    let cursorY = heroHeight + ACCENT_HEIGHT + 16;
+    let cursorY = heroHeight + 16;
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(20);
@@ -219,7 +223,7 @@ const PDF = (() => {
       if (cursorY + lineHeight > bottomLimit) {
         doc.addPage();
         drawContinuationHeader(doc, profile);
-        cursorY = CONTINUATION_HEIGHT + CONTINUATION_ACCENT + 14;
+        cursorY = CONTINUATION_HEIGHT + 14;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(11.5);
         setText(doc, COLOR.text);
