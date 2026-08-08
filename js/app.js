@@ -210,6 +210,44 @@ document.addEventListener('DOMContentLoaded', () => {
     UI.toast('Compte-rendu effacé.', 'success');
   });
 
+  const btnOrganizeAi = document.getElementById('btn-organize-ai');
+  const organizeStatus = document.getElementById('organize-status');
+
+  function setOrganizeStatus(message, tone = '') {
+    organizeStatus.textContent = message || '';
+    if (tone) organizeStatus.dataset.tone = tone;
+    else delete organizeStatus.dataset.tone;
+  }
+
+  btnOrganizeAi.addEventListener('click', async () => {
+    const text = textareaReport.value.trim();
+    if (!text) {
+      setOrganizeStatus('Le compte-rendu est vide.', 'error');
+      return;
+    }
+    if (!window.dictavoixSupabase) {
+      setOrganizeStatus('Fonction indisponible pour le moment.', 'error');
+      return;
+    }
+    btnOrganizeAi.disabled = true;
+    setOrganizeStatus("Organisation en cours…");
+    try {
+      const { data, error } = await window.dictavoixSupabase.functions.invoke('organize-report', {
+        body: { text },
+      });
+      if (error || !data || !data.organized) {
+        throw error || new Error('Réponse invalide');
+      }
+      textareaReport.value = data.organized;
+      setOrganizeStatus('Compte-rendu organisé.', 'ok');
+    } catch (err) {
+      console.error(err);
+      setOrganizeStatus("Impossible d'organiser le compte-rendu pour le moment.", 'error');
+    } finally {
+      btnOrganizeAi.disabled = false;
+    }
+  });
+
   btnSaveAsNote.addEventListener('click', () => {
     if (!textareaReport.value.trim()) {
       UI.toast('Le compte-rendu est vide.', 'error');

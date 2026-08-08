@@ -400,6 +400,13 @@ input, textarea {
   100% { transform: scale(1.9); opacity: 0; }
 }
 
+.ai-organize-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
 /* ---------- Action row / buttons ---------- */
 .action-row {
   display: flex;
