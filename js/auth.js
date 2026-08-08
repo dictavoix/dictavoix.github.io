@@ -17,7 +17,19 @@
   const setpwPasswordConfirm = document.getElementById('setpw-password-confirm');
   const setpwStatus = document.getElementById('setpw-status');
 
+  const screenBiometricPrompt = document.getElementById('screen-biometric-prompt');
+  const btnEnableBiometric = document.getElementById('btn-enable-biometric');
+  const btnSkipBiometric = document.getElementById('btn-skip-biometric');
+
+  const screenBiometricLock = document.getElementById('screen-biometric-lock');
+  const btnUnlockBiometric = document.getElementById('btn-unlock-biometric');
+  const btnUsePasswordInstead = document.getElementById('btn-use-password-instead');
+  const biometricStatus = document.getElementById('biometric-status');
+
   const REMEMBER_KEY = 'dictavoix_remember_me';
+  const BIOMETRIC_CRED_KEY = 'dictavoix_biometric_credential_id';
+  const BIOMETRIC_SKIPPED_KEY = 'dictavoix_biometric_skipped';
+  let justLoggedIn = false;
 
   function setStatus(el, message, tone) {
     el.textContent = message || '';
@@ -36,6 +48,8 @@
     lockScreen.hidden = false;
     btnLogout.hidden = true;
     formSetPassword.hidden = true;
+    screenBiometricPrompt.hidden = true;
+    screenBiometricLock.hidden = true;
     formLogin.hidden = false;
   }
 
@@ -44,7 +58,104 @@
     lockScreen.hidden = false;
     btnLogout.hidden = true;
     formLogin.hidden = true;
+    screenBiometricPrompt.hidden = true;
+    screenBiometricLock.hidden = true;
     formSetPassword.hidden = false;
+  }
+
+  function showBiometricPrompt() {
+    appRoot.hidden = true;
+    lockScreen.hidden = false;
+    btnLogout.hidden = true;
+    formLogin.hidden = true;
+    formSetPassword.hidden = true;
+    screenBiometricLock.hidden = true;
+    screenBiometricPrompt.hidden = false;
+  }
+
+  function showBiometricLock() {
+    appRoot.hidden = true;
+    lockScreen.hidden = false;
+    btnLogout.hidden = true;
+    formLogin.hidden = true;
+    formSetPassword.hidden = true;
+    screenBiometricPrompt.hidden = true;
+    screenBiometricLock.hidden = false;
+  }
+
+  /* ---------- Déverrouillage rapide par Face ID / empreinte (WebAuthn) ----------
+     Verrou local en plus de la session Supabase : n'importe qui avec le téléphone
+     déverrouillé ne peut pas ouvrir l'appli sans repasser par Face ID/empreinte. */
+  function randomBytes(len) {
+    return crypto.getRandomValues(new Uint8Array(len));
+  }
+
+  function bufToBase64(buf) {
+    return btoa(String.fromCharCode(...new Uint8Array(buf)));
+  }
+
+  function base64ToBuf(b64) {
+    return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  }
+
+  async function isBiometricAvailable() {
+    return !!(
+      window.PublicKeyCredential &&
+      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable &&
+      (await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())
+    );
+  }
+
+  function hasBiometricEnrolled() {
+    return !!localStorage.getItem(BIOMETRIC_CRED_KEY);
+  }
+
+  async function enrollBiometric(email) {
+    const credential = await navigator.credentials.create({
+      publicKey: {
+        challenge: randomBytes(32),
+        rp: { name: 'Dictavoix' },
+        user: {
+          id: randomBytes(16),
+          name: email || 'utilisateur',
+          displayName: email || 'Utilisateur Dictavoix',
+        },
+        pubKeyCredParams: [
+          { type: 'public-key', alg: -7 },
+          { type: 'public-key', alg: -257 },
+        ],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+        timeout: 60000,
+      },
+    });
+    localStorage.setItem(BIOMETRIC_CRED_KEY, bufToBase64(credential.rawId));
+  }
+
+  async function verifyBiometric() {
+    const credId = localStorage.getItem(BIOMETRIC_CRED_KEY);
+    if (!credId) return false;
+    try {
+      await navigator.credentials.get({
+        publicKey: {
+          challenge: randomBytes(32),
+          allowCredentials: [{ id: base64ToBuf(credId), type: 'public-key' }],
+          userVerification: 'required',
+          timeout: 60000,
+        },
+      });
+      return true;
+    } catch (err) {
+      console.error('Vérification biométrique refusée', err);
+      return false;
+    }
+  }
+
+  async function afterFreshLogin() {
+    if (!hasBiometricEnrolled() && localStorage.getItem(BIOMETRIC_SKIPPED_KEY) !== '1' && (await isBiometricAvailable())) {
+      showBiometricPrompt();
+    } else {
+      showApp();
+    }
   }
 
   const config = window.DICTAVOIX_SUPABASE;
@@ -95,16 +206,48 @@
     e.preventDefault();
     setStatus(lockStatus, 'Connexion en cours…');
     localStorage.setItem(REMEMBER_KEY, loginRemember.checked ? 'on' : 'off');
+    justLoggedIn = true;
     const { error } = await supabaseClient.auth.signInWithPassword({
       email: loginEmail.value.trim(),
       password: loginPassword.value,
     });
     if (error) {
+      justLoggedIn = false;
       setStatus(lockStatus, "Email ou mot de passe incorrect.", 'error');
       return;
     }
     setStatus(lockStatus, '');
+    await afterFreshLogin();
+  });
+
+  btnEnableBiometric.addEventListener('click', async () => {
+    try {
+      const { data } = await supabaseClient.auth.getUser();
+      await enrollBiometric(data && data.user && data.user.email);
+    } catch (err) {
+      console.error("Impossible d'activer Face ID/empreinte", err);
+    }
     showApp();
+  });
+
+  btnSkipBiometric.addEventListener('click', () => {
+    localStorage.setItem(BIOMETRIC_SKIPPED_KEY, '1');
+    showApp();
+  });
+
+  btnUnlockBiometric.addEventListener('click', async () => {
+    setStatus(biometricStatus, 'Vérification…');
+    const ok = await verifyBiometric();
+    if (ok) {
+      setStatus(biometricStatus, '');
+      showApp();
+    } else {
+      setStatus(biometricStatus, 'Échec de la vérification. Réessayez ou utilisez votre mot de passe.', 'error');
+    }
+  });
+
+  btnUsePasswordInstead.addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
   });
 
   formSetPassword.addEventListener('submit', async (e) => {
@@ -162,6 +305,10 @@
     if (session) {
       if (isRecoveryOrInvite) {
         showSetPasswordForm();
+      } else if (justLoggedIn) {
+        /* Géré par le formulaire de connexion lui-même (afterFreshLogin). */
+      } else if (hasBiometricEnrolled()) {
+        showBiometricLock();
       } else {
         showApp();
       }
@@ -172,6 +319,8 @@
     if (data.session) {
       if (isRecoveryOrInvite) {
         showSetPasswordForm();
+      } else if (hasBiometricEnrolled()) {
+        showBiometricLock();
       } else {
         showApp();
       }

@@ -199,6 +199,19 @@
       <button type="submit" class="btn btn--primary">Activer mon compte</button>
       <p class="lock-screen__status" id="setpw-status" aria-live="polite"></p>
     </form>
+
+    <div class="lock-form" id="screen-biometric-prompt" hidden>
+      <p class="lock-screen__text">Activer le déverrouillage rapide par Face ID / empreinte sur cet appareil ?</p>
+      <button type="button" class="btn btn--primary" id="btn-enable-biometric">Activer</button>
+      <button type="button" class="link-button" id="btn-skip-biometric">Plus tard</button>
+    </div>
+
+    <div class="lock-form" id="screen-biometric-lock" hidden>
+      <p class="lock-screen__text">Déverrouillez l'application pour continuer.</p>
+      <button type="button" class="btn btn--primary" id="btn-unlock-biometric">Déverrouiller (Face ID / empreinte)</button>
+      <button type="button" class="link-button" id="btn-use-password-instead">Utiliser mon mot de passe</button>
+      <p class="lock-screen__status" id="biometric-status" aria-live="polite"></p>
+    </div>
   </div>
 </div>
 
