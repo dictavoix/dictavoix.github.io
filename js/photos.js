@@ -83,12 +83,5 @@ const Photos = (() => {
     return blobToDataUrl(data);
   }
 
-  async function downloadManyAsDataUrl(paths) {
-    const list = paths || [];
-    if (!list.length) return [];
-    const results = await Promise.all(list.map((path) => downloadAsDataUrl(path)));
-    return results.filter(Boolean);
-  }
-
-  return { normalizeToJpegDataUrl, uploadDataUrl, remove, removeMany, downloadAsDataUrl, downloadManyAsDataUrl };
+  return { normalizeToJpegDataUrl, uploadDataUrl, remove, removeMany, downloadAsDataUrl };
 })();

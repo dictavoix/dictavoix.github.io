@@ -29,6 +29,7 @@ create table public.reports (
   patient_name text not null default '',
   content text not null default '',
   photo_paths text[] not null default '{}'::text[],
+  photo_labels text[] not null default '{}'::text[],
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

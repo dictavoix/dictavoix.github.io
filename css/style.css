@@ -438,6 +438,11 @@ input, textarea {
   z-index: 10;
 }
 
+.photo-preview__item.is-drop-target img {
+  outline: 2px dashed var(--amber-500);
+  outline-offset: 2px;
+}
+
 .photo-preview__item img {
   max-width: 150px;
   max-height: 150px;
@@ -445,6 +450,19 @@ input, textarea {
   border: 1px solid var(--border);
   object-fit: cover;
   pointer-events: none;
+}
+
+.photo-preview__label {
+  width: 150px;
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  text-align: center;
+  touch-action: auto;
+  cursor: text;
 }
 
 .photo-hint {

@@ -238,12 +238,12 @@ const PDF = (() => {
       cursorY += lineHeight;
     });
 
-    const photoList = (photos || []).filter(Boolean);
-    photoList.forEach((photo, index) => {
-      const format = photoFormat(photo);
+    const photoList = (photos || []).filter((p) => p && p.dataUrl);
+    photoList.forEach((entry, index) => {
+      const format = photoFormat(entry.dataUrl);
       if (!format) return;
       try {
-        const props = doc.getImageProperties(photo);
+        const props = doc.getImageProperties(entry.dataUrl);
         let imgWidth = CONTENT_WIDTH;
         let imgHeight = (imgWidth * props.height) / props.width;
         const maxHeight = 110;
@@ -258,10 +258,11 @@ const PDF = (() => {
         } else {
           cursorY += 4;
         }
-        const tag = photoList.length > 1 ? `PHOTO ${index + 1}/${photoList.length}` : 'PHOTO';
+        const label = (entry.label || '').trim();
+        const tag = label ? label.toUpperCase() : (photoList.length > 1 ? `PHOTO ${index + 1}/${photoList.length}` : 'PHOTO');
         drawSectionTag(doc, MARGIN, cursorY, tag);
         cursorY += 10;
-        doc.addImage(photo, format, MARGIN, cursorY, imgWidth, imgHeight);
+        doc.addImage(entry.dataUrl, format, MARGIN, cursorY, imgWidth, imgHeight);
         cursorY += imgHeight;
       } catch (err) {
         console.warn('Photo illisible, ignorée dans le PDF.', err);

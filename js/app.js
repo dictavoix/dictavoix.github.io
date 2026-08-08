@@ -144,7 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const photoPreviewEl = document.getElementById('photo-preview');
   const photoHintEl = document.getElementById('photo-hint');
 
-  /* Chaque entrée : { key, dataUrl (toujours un JPEG, quel que soit le format d'origine), path (une fois envoyée au stockage) } */
+  /* Chaque entrée : { key, dataUrl (toujours un JPEG, quel que soit le format d'origine),
+     path (une fois envoyée au stockage), label (nom optionnel affiché dans le PDF) } */
   let currentPhotos = [];
   let photoPathsPendingDeletion = [];
   let dragState = null;
@@ -159,48 +160,53 @@ document.addEventListener('DOMContentLoaded', () => {
     else delete photoStatusEl.dataset.tone;
   }
 
-  function syncPhotoOrderFromDom() {
-    const orderedKeys = Array.from(photoPreviewEl.querySelectorAll('.photo-preview__item')).map((el) => el.dataset.key);
-    currentPhotos.sort((a, b) => orderedKeys.indexOf(a.key) - orderedKeys.indexOf(b.key));
-  }
-
-  function attachDragHandlers(item) {
+  /* Le glisser ne déplace l'élément que visuellement (transform) : la position dans le DOM
+     ne change jamais pendant le geste, ce qui évite de perdre la capture du pointeur en
+     cours de route (source du bug où l'ordre changeait à l'écran mais pas dans le PDF).
+     L'ordre réel n'est recalculé qu'une seule fois, au relâchement. */
+  function attachDragHandlers(item, key) {
     function onMove(e) {
-      if (!dragState || dragState.item !== item) return;
+      if (!dragState || dragState.key !== key) return;
       const dx = e.clientX - dragState.startX;
       const dy = e.clientY - dragState.startY;
       item.style.transform = `translate(${dx}px, ${dy}px)`;
       const siblings = Array.from(photoPreviewEl.querySelectorAll('.photo-preview__item')).filter((el) => el !== item);
-      const target = siblings.find((sibling) => {
+      let hoverKey = null;
+      for (const sibling of siblings) {
         const rect = sibling.getBoundingClientRect();
-        return e.clientX > rect.left && e.clientX < rect.right && e.clientY > rect.top && e.clientY < rect.bottom;
-      });
-      if (target) {
-        const items = Array.from(photoPreviewEl.children);
-        if (items.indexOf(item) < items.indexOf(target)) {
-          photoPreviewEl.insertBefore(item, target.nextSibling);
-        } else {
-          photoPreviewEl.insertBefore(item, target);
+        if (e.clientX > rect.left && e.clientX < rect.right && e.clientY > rect.top && e.clientY < rect.bottom) {
+          hoverKey = sibling.dataset.key;
+          break;
         }
       }
+      dragState.hoverKey = hoverKey;
+      siblings.forEach((el) => el.classList.toggle('is-drop-target', el.dataset.key === hoverKey));
     }
-    function onUp(e) {
-      if (!dragState || dragState.item !== item) return;
-      item.releasePointerCapture(e.pointerId);
-      item.classList.remove('is-dragging');
-      item.style.transform = '';
+    function onEnd(e) {
+      if (!dragState || dragState.key !== key) return;
+      try { item.releasePointerCapture(e.pointerId); } catch (err) { /* déjà relâché */ }
+      const hoverKey = dragState.hoverKey;
       dragState = null;
-      syncPhotoOrderFromDom();
+      photoPreviewEl.querySelectorAll('.photo-preview__item').forEach((el) => el.classList.remove('is-drop-target'));
+      if (hoverKey && hoverKey !== key) {
+        const fromIndex = currentPhotos.findIndex((p) => p.key === key);
+        const toIndex = currentPhotos.findIndex((p) => p.key === hoverKey);
+        if (fromIndex !== -1 && toIndex !== -1) {
+          const [moved] = currentPhotos.splice(fromIndex, 1);
+          currentPhotos.splice(toIndex, 0, moved);
+        }
+      }
+      renderPhotoPreviews();
     }
     item.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('button')) return;
-      dragState = { item, startX: e.clientX, startY: e.clientY };
+      if (e.target.closest('button') || e.target.closest('input')) return;
+      dragState = { key, startX: e.clientX, startY: e.clientY, hoverKey: null };
       item.setPointerCapture(e.pointerId);
       item.classList.add('is-dragging');
     });
     item.addEventListener('pointermove', onMove);
-    item.addEventListener('pointerup', onUp);
-    item.addEventListener('pointercancel', onUp);
+    item.addEventListener('pointerup', onEnd);
+    item.addEventListener('pointercancel', onEnd);
   }
 
   function renderPhotoPreviews() {
@@ -212,11 +218,15 @@ document.addEventListener('DOMContentLoaded', () => {
       item.dataset.key = entry.key;
       item.innerHTML = `
         <img alt="Photo jointe">
+        <input type="text" class="photo-preview__label" placeholder="Nom de la photo (optionnel)" maxlength="60">
         <button type="button" class="btn btn--ghost btn--sm">Retirer</button>
       `;
       item.querySelector('img').src = entry.dataUrl;
+      const labelInput = item.querySelector('.photo-preview__label');
+      labelInput.value = entry.label || '';
+      labelInput.addEventListener('input', () => { entry.label = labelInput.value; });
       item.querySelector('button').addEventListener('click', () => removePhoto(entry.key));
-      attachDragHandlers(item);
+      attachDragHandlers(item, entry.key);
       photoPreviewEl.appendChild(item);
     });
     photoHintEl.hidden = currentPhotos.length < 2;
@@ -239,19 +249,32 @@ document.addEventListener('DOMContentLoaded', () => {
     setPhotoStatus('');
   }
 
-  function loadExistingPhotos(paths) {
+  function loadExistingPhotos(paths, labels) {
     resetPhotoState();
     const list = (paths || []).filter(Boolean);
     if (!list.length) return;
     setPhotoStatus('Chargement des photos…');
-    Promise.all(list.map((path) => Photos.downloadAsDataUrl(path).then((dataUrl) => ({ path, dataUrl })))).then((results) => {
+    Promise.all(list.map((path, index) => Photos.downloadAsDataUrl(path).then((dataUrl) => ({ path, dataUrl, label: (labels || [])[index] || '' })))).then((results) => {
       setPhotoStatus('');
-      results.forEach(({ path, dataUrl }) => {
+      results.forEach(({ path, dataUrl, label }) => {
         if (!dataUrl) return;
-        currentPhotos.push({ key: photoKey(), dataUrl, path });
+        currentPhotos.push({ key: photoKey(), dataUrl, path, label });
       });
       renderPhotoPreviews();
     });
+  }
+
+  function currentPhotoLabels() {
+    return currentPhotos.map((entry) => (entry.label || '').trim());
+  }
+
+  async function downloadPhotosForExport(report) {
+    const paths = report.photo_paths || [];
+    const labels = report.photo_labels || [];
+    const results = await Promise.all(
+      paths.map((path, index) => Photos.downloadAsDataUrl(path).then((dataUrl) => ({ dataUrl, label: labels[index] || '' })))
+    );
+    return results.filter((entry) => entry.dataUrl);
   }
 
   async function ensurePhotosUploaded() {
@@ -528,6 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
         /* Même précaution : on enregistre dans le dossier client avant de
            déclencher le téléchargement, qui peut faire quitter la page sur mobile. */
         const photoPaths = await ensurePhotosUploaded();
+        const photoLabels = currentPhotoLabels();
         if (editingReportId) {
           const { error } = await window.dictavoixSupabase
             .from('reports')
@@ -536,6 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
               patient_name: (patientName || '').trim(),
               content,
               photo_paths: photoPaths,
+              photo_labels: photoLabels,
               updated_at: new Date().toISOString(),
             })
             .eq('id', editingReportId);
@@ -549,6 +574,7 @@ document.addEventListener('DOMContentLoaded', () => {
             patient_name: (patientName || '').trim(),
             content,
             photo_paths: photoPaths,
+            photo_labels: photoLabels,
           });
           if (error) throw error;
         }
@@ -572,7 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const patientName = inputPatientName.value;
     const content = textareaReport.value;
     try {
-      const { doc, fileName } = PDF.buildDoc({ patientName, content, profile: Storage.getProfile(), photos: currentPhotos.map((p) => p.dataUrl) });
+      const { doc, fileName } = PDF.buildDoc({ patientName, content, profile: Storage.getProfile(), photos: currentPhotos.map((p) => ({ dataUrl: p.dataUrl, label: p.label })) });
       pendingPdf = { doc, fileName, patientName, content };
       UI.openModal(modalPdfPreview);
       renderPdfPreview(doc);
@@ -602,12 +628,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function saveReportRecord({ patientName, content }) {
     const photoPaths = await ensurePhotosUploaded();
+    const photoLabels = currentPhotoLabels();
     const { data: userData } = await window.dictavoixSupabase.auth.getUser();
     const { error } = await window.dictavoixSupabase.from('reports').insert({
       user_id: userData.user.id,
       patient_name: (patientName || '').trim(),
       content,
       photo_paths: photoPaths,
+      photo_labels: photoLabels,
     });
     if (error) console.error('saveReportRecord', error);
     await renderReportsList();
@@ -615,9 +643,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function updateReportRecord(id, { patientName, content }) {
     const photoPaths = await ensurePhotosUploaded();
+    const photoLabels = currentPhotoLabels();
     const { error } = await window.dictavoixSupabase
       .from('reports')
-      .update({ patient_name: (patientName || '').trim(), content, photo_paths: photoPaths, updated_at: new Date().toISOString() })
+      .update({ patient_name: (patientName || '').trim(), content, photo_paths: photoPaths, photo_labels: photoLabels, updated_at: new Date().toISOString() })
       .eq('id', id);
     if (error) console.error('updateReportRecord', error);
     await renderReportsList();
@@ -663,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
         editingReportId = report.id;
         inputPatientName.value = report.patient_name || '';
         textareaReport.value = report.content;
-        loadExistingPhotos(report.photo_paths);
+        loadExistingPhotos(report.photo_paths, report.photo_labels);
         lastSavedSnapshot = currentSnapshot();
         switchView('compte-rendu');
         UI.toast('Compte-rendu chargé pour modification.', 'success');
@@ -671,7 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       li.querySelector('[data-action="download"]').addEventListener('click', async () => {
         try {
-          const photos = await Photos.downloadManyAsDataUrl(report.photo_paths);
+          const photos = await downloadPhotosForExport(report);
           PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
         } catch (err) {
           console.error(err);
@@ -1086,7 +1115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         li.querySelector('.list-card__meta').textContent = `Exporté le ${formatReportDate(new Date(report.created_at).getTime())}`;
         li.querySelector('[data-action="download"]').addEventListener('click', async () => {
           try {
-            const photos = await Photos.downloadManyAsDataUrl(report.photo_paths);
+            const photos = await downloadPhotosForExport(report);
             PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
           } catch (err) {
             console.error(err);
@@ -1097,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', () => {
           editingReportId = report.id;
           inputPatientName.value = report.patient_name || '';
           textareaReport.value = report.content;
-          loadExistingPhotos(report.photo_paths);
+          loadExistingPhotos(report.photo_paths, report.photo_labels);
           lastSavedSnapshot = currentSnapshot();
           UI.closeModal(modalClient);
           switchView('compte-rendu');
