@@ -25,7 +25,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=8">
+<link rel="stylesheet" href="css/style.css?v=9">
 <link rel="modulepreload" href="vendor/pdfjs/pdf.min.mjs">
 <link rel="preload" href="vendor/pdfjs/pdf.worker.min.mjs" as="script" crossorigin>
 </head>
@@ -380,7 +380,7 @@
       <div id="pdf-preview-container" class="pdf-preview-container">
         <p class="pdf-preview-status">Génération de l'aperçu…</p>
       </div>
-      <div class="modal__footer">
+      <div class="modal__footer modal__footer--pdf">
         <button type="button" class="btn btn--primary" id="btn-pdf-preview-confirm">Enregistrer le PDF</button>
         <button type="button" class="btn btn--secondary" id="btn-pdf-preview-file-client">Dossier client</button>
         <button type="button" class="btn btn--ghost" id="btn-pdf-preview-edit">Modifier</button>
@@ -471,8 +471,8 @@
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
 <script src="vendor/supabase/supabase.min.js"></script>
-<script src="js/supabase-config.js?v=8"></script>
-<script src="js/auth.js?v=8"></script>
+<script src="js/supabase-config.js?v=9"></script>
+<script src="js/auth.js?v=9"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import * as pdfjsLib from './vendor/pdfjs/pdf.min.mjs';
@@ -480,12 +480,12 @@
   window.pdfjsLib = pdfjsLib;
   window.dispatchEvent(new Event('pdfjslib-ready'));
 </script>
-<script src="js/storage.js?v=8"></script>
-<script src="js/ui.js?v=8"></script>
-<script src="js/speech.js?v=8"></script>
-<script src="js/pdf.js?v=8"></script>
-<script src="js/notes.js?v=8"></script>
-<script src="js/clients.js?v=8"></script>
-<script src="js/app.js?v=8"></script>
+<script src="js/storage.js?v=9"></script>
+<script src="js/ui.js?v=9"></script>
+<script src="js/speech.js?v=9"></script>
+<script src="js/pdf.js?v=9"></script>
+<script src="js/notes.js?v=9"></script>
+<script src="js/clients.js?v=9"></script>
+<script src="js/app.js?v=9"></script>
 </body>
 </html>

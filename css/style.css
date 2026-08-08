@@ -716,6 +716,20 @@ input, textarea {
   justify-content: space-between;
 }
 
+.modal__footer--pdf {
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+}
+
+.modal__footer--pdf .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  white-space: normal;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
 .modal-confirm__message {
   font-size: 1rem;
   color: var(--text);
