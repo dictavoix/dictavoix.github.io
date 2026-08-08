@@ -142,10 +142,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAddPhoto = document.getElementById('btn-add-photo');
   const photoStatusEl = document.getElementById('photo-status');
   const photoPreviewEl = document.getElementById('photo-preview');
+  const photoHintEl = document.getElementById('photo-hint');
 
-  /* Chaque entrée : { key, dataUrl, file (si nouvelle, pas encore envoyée), path (si déjà envoyée) } */
+  /* Chaque entrée : { key, dataUrl (toujours un JPEG, quel que soit le format d'origine), path (une fois envoyée au stockage) } */
   let currentPhotos = [];
   let photoPathsPendingDeletion = [];
+  let dragState = null;
 
   function photoKey() {
     return `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -157,20 +159,67 @@ document.addEventListener('DOMContentLoaded', () => {
     else delete photoStatusEl.dataset.tone;
   }
 
+  function syncPhotoOrderFromDom() {
+    const orderedKeys = Array.from(photoPreviewEl.querySelectorAll('.photo-preview__item')).map((el) => el.dataset.key);
+    currentPhotos.sort((a, b) => orderedKeys.indexOf(a.key) - orderedKeys.indexOf(b.key));
+  }
+
+  function attachDragHandlers(item) {
+    function onMove(e) {
+      if (!dragState || dragState.item !== item) return;
+      const dx = e.clientX - dragState.startX;
+      const dy = e.clientY - dragState.startY;
+      item.style.transform = `translate(${dx}px, ${dy}px)`;
+      const siblings = Array.from(photoPreviewEl.querySelectorAll('.photo-preview__item')).filter((el) => el !== item);
+      const target = siblings.find((sibling) => {
+        const rect = sibling.getBoundingClientRect();
+        return e.clientX > rect.left && e.clientX < rect.right && e.clientY > rect.top && e.clientY < rect.bottom;
+      });
+      if (target) {
+        const items = Array.from(photoPreviewEl.children);
+        if (items.indexOf(item) < items.indexOf(target)) {
+          photoPreviewEl.insertBefore(item, target.nextSibling);
+        } else {
+          photoPreviewEl.insertBefore(item, target);
+        }
+      }
+    }
+    function onUp(e) {
+      if (!dragState || dragState.item !== item) return;
+      item.releasePointerCapture(e.pointerId);
+      item.classList.remove('is-dragging');
+      item.style.transform = '';
+      dragState = null;
+      syncPhotoOrderFromDom();
+    }
+    item.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button')) return;
+      dragState = { item, startX: e.clientX, startY: e.clientY };
+      item.setPointerCapture(e.pointerId);
+      item.classList.add('is-dragging');
+    });
+    item.addEventListener('pointermove', onMove);
+    item.addEventListener('pointerup', onUp);
+    item.addEventListener('pointercancel', onUp);
+  }
+
   function renderPhotoPreviews() {
     photoPreviewEl.innerHTML = '';
     photoPreviewEl.hidden = currentPhotos.length === 0;
     currentPhotos.forEach((entry) => {
       const item = document.createElement('div');
       item.className = 'photo-preview__item';
+      item.dataset.key = entry.key;
       item.innerHTML = `
         <img alt="Photo jointe">
         <button type="button" class="btn btn--ghost btn--sm">Retirer</button>
       `;
       item.querySelector('img').src = entry.dataUrl;
       item.querySelector('button').addEventListener('click', () => removePhoto(entry.key));
+      attachDragHandlers(item);
       photoPreviewEl.appendChild(item);
     });
+    photoHintEl.hidden = currentPhotos.length < 2;
   }
 
   function removePhoto(key) {
@@ -186,6 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
     photoPathsPendingDeletion = [];
     photoPreviewEl.innerHTML = '';
     photoPreviewEl.hidden = true;
+    photoHintEl.hidden = true;
     setPhotoStatus('');
   }
 
@@ -198,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setPhotoStatus('');
       results.forEach(({ path, dataUrl }) => {
         if (!dataUrl) return;
-        currentPhotos.push({ key: photoKey(), dataUrl, file: null, path });
+        currentPhotos.push({ key: photoKey(), dataUrl, path });
       });
       renderPhotoPreviews();
     });
@@ -210,9 +260,8 @@ document.addEventListener('DOMContentLoaded', () => {
       photoPathsPendingDeletion = [];
     }
     for (const entry of currentPhotos) {
-      if (entry.file && !entry.path) {
-        entry.path = await Photos.upload(entry.file);
-        entry.file = null;
+      if (!entry.path) {
+        entry.path = await Photos.uploadDataUrl(entry.dataUrl);
       }
     }
     return currentPhotos.map((entry) => entry.path).filter(Boolean);
@@ -225,19 +274,15 @@ document.addEventListener('DOMContentLoaded', () => {
     inputReportPhoto.value = '';
     if (!files.length) return;
     for (const file of files) {
-      if (!file.type.startsWith('image/')) {
-        setPhotoStatus('Veuillez choisir une image.', 'error');
-        continue;
-      }
       try {
-        const dataUrl = await Photos.fileToDataUrl(file);
-        currentPhotos.push({ key: photoKey(), dataUrl, file, path: null });
+        const dataUrl = await Photos.normalizeToJpegDataUrl(file);
+        currentPhotos.push({ key: photoKey(), dataUrl, path: null });
       } catch (err) {
         console.error(err);
-        setPhotoStatus('Impossible de charger cette photo.', 'error');
+        setPhotoStatus("Impossible de charger cette photo (format non pris en charge).", 'error');
       }
     }
-    setPhotoStatus('');
+    if (!photoStatusEl.dataset.tone) setPhotoStatus('');
     renderPhotoPreviews();
   });
 
