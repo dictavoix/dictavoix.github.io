@@ -52,6 +52,10 @@ const UI = (() => {
 
   // Utilitaires génériques de modale (ouverture/fermeture par overlay)
   function openModal(overlayEl) {
+    /* Replace en dernier enfant du body : si une autre modale est déjà ouverte
+       (ex: sélection d'un client depuis l'aperçu PDF), celle-ci doit s'afficher
+       au-dessus plutôt que de rester cachée derrière, à z-index égal. */
+    document.body.appendChild(overlayEl);
     overlayEl.hidden = false;
   }
   function closeModal(overlayEl) {

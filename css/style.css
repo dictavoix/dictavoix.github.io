@@ -552,6 +552,15 @@ input, textarea {
   box-shadow: var(--shadow-sm);
 }
 
+.list-card--pickable {
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.list-card--pickable:hover {
+  border-color: var(--ink-accent);
+}
+
 .list-card__title {
   font-family: var(--font-heading);
   font-size: 1.05rem;

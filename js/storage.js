@@ -2,9 +2,7 @@
 const Storage = (() => {
   const KEYS = {
     PROFILE: 'dictavoix_profile',
-    NOTES: 'dictavoix_notes',
     DRAFT: 'dictavoix_draft',
-    REPORTS: 'dictavoix_reports',
   };
 
   function get(key, fallback = null) {
@@ -44,14 +42,6 @@ const Storage = (() => {
     return set(KEYS.PROFILE, profile);
   }
 
-  // --- Notes de séance ---
-  function getNotes() {
-    return get(KEYS.NOTES, []);
-  }
-  function setNotes(notes) {
-    return set(KEYS.NOTES, notes);
-  }
-
   // --- Brouillon compte-rendu ---
   function getDraft() {
     return get(KEYS.DRAFT, null);
@@ -63,14 +53,6 @@ const Storage = (() => {
     remove(KEYS.DRAFT);
   }
 
-  // --- Historique des comptes-rendus exportés ---
-  function getReports() {
-    return get(KEYS.REPORTS, []);
-  }
-  function setReports(reports) {
-    return set(KEYS.REPORTS, reports);
-  }
-
   return {
     KEYS,
     get,
@@ -78,12 +60,8 @@ const Storage = (() => {
     remove,
     getProfile,
     setProfile,
-    getNotes,
-    setNotes,
     getDraft,
     setDraft,
     clearDraft,
-    getReports,
-    setReports,
   };
 })();

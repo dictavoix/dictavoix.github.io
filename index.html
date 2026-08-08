@@ -25,7 +25,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=3">
+<link rel="stylesheet" href="css/style.css?v=5">
 <link rel="modulepreload" href="vendor/pdfjs/pdf.min.mjs">
 <link rel="preload" href="vendor/pdfjs/pdf.worker.min.mjs" as="script" crossorigin>
 </head>
@@ -134,6 +134,19 @@
       <p id="notes-empty" class="empty-state" hidden>Aucune note pour le moment. Créez-en une pour commencer.</p>
     </section>
 
+    <!-- Vue Clients -->
+    <section id="view-clients" class="view" data-view="clients" hidden>
+      <div class="view-notes__header">
+        <h2>Clients</h2>
+        <button type="button" class="btn btn--primary btn--sm" id="btn-new-client">+ Nouveau client</button>
+      </div>
+      <div class="field">
+        <input type="text" id="input-client-search" placeholder="Rechercher un client…" autocomplete="off">
+      </div>
+      <ul id="clients-list" class="notes-list"></ul>
+      <p id="clients-empty" class="empty-state" hidden>Aucun client pour le moment. Créez-en un pour commencer.</p>
+    </section>
+
   </main>
 
   <!-- Bottom navigation -->
@@ -141,6 +154,10 @@
     <button type="button" class="bottom-nav__btn is-active" data-nav="compte-rendu">
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Zm8 1.5V8h4.5L14 3.5ZM7 12h10v1.5H7V12Zm0 4h10v1.5H7V16Zm0-8h5v1.5H7V8Z"/></svg>
       <span>Compte-rendu</span>
+    </button>
+    <button type="button" class="bottom-nav__btn" data-nav="clients">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5Z"/></svg>
+      <span>Clients</span>
     </button>
     <button type="button" class="bottom-nav__btn" data-nav="notes">
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M4 4h16v2H4V4Zm0 5h16v2H4V9Zm0 5h10v2H4v-2Zm0 5h10v2H4v-2Zm14-3 4 4-4 4v-3a4 4 0 0 1-4-4h1.5a2.5 2.5 0 0 0 2.5 2.5V16Z"/></svg>
@@ -287,6 +304,71 @@
   </div>
 </div>
 
+<!-- Modale Fiche client -->
+<div class="modal-overlay" id="modal-client" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-client-title">
+    <div class="modal__header">
+      <h2 id="modal-client-title">Nouveau client</h2>
+      <button type="button" class="icon-btn" id="btn-close-client" aria-label="Fermer">✕</button>
+    </div>
+    <form id="form-client" class="modal__body">
+      <input type="hidden" id="input-client-id">
+      <div class="field">
+        <label for="input-client-first-name">Prénom</label>
+        <input type="text" id="input-client-first-name" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="input-client-last-name">Nom</label>
+        <input type="text" id="input-client-last-name" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="input-client-address">Adresse</label>
+        <input type="text" id="input-client-address" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="input-client-contact">Coordonnées</label>
+        <textarea id="input-client-contact" placeholder="Téléphone, email…" rows="2"></textarea>
+      </div>
+      <div class="field">
+        <label for="input-client-quick-note">Note rapide</label>
+        <textarea id="input-client-quick-note" placeholder="Un petit rappel pour ce client…" rows="2"></textarea>
+      </div>
+
+      <div id="client-history" hidden>
+        <h3 class="history__title">Comptes-rendus</h3>
+        <ul id="client-reports-list" class="notes-list"></ul>
+        <p id="client-reports-empty" class="empty-state" hidden>Aucun compte-rendu pour ce client.</p>
+
+        <h3 class="history__title">Notes</h3>
+        <ul id="client-notes-list" class="notes-list"></ul>
+        <p id="client-notes-empty" class="empty-state" hidden>Aucune note pour ce client.</p>
+      </div>
+
+      <div class="modal__footer modal__footer--split">
+        <button type="button" class="btn btn--danger" id="btn-delete-client" hidden>Supprimer</button>
+        <button type="submit" class="btn btn--primary">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modale sélection client (ranger un compte-rendu ou une note) -->
+<div class="modal-overlay" id="modal-client-picker" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-client-picker-title">
+    <div class="modal__header">
+      <h2 id="modal-client-picker-title">Dossier client</h2>
+      <button type="button" class="icon-btn" id="btn-close-client-picker" aria-label="Fermer">✕</button>
+    </div>
+    <div class="modal__body">
+      <div class="field">
+        <input type="text" id="input-client-picker-search" placeholder="Rechercher un client…" autocomplete="off">
+      </div>
+      <ul id="client-picker-list" class="notes-list"></ul>
+      <p id="client-picker-empty" class="empty-state" hidden>Aucun client trouvé.</p>
+    </div>
+  </div>
+</div>
+
 <!-- Modale de prévisualisation PDF -->
 <div class="modal-overlay" id="modal-pdf-preview" hidden>
   <div class="modal modal--pdf" role="dialog" aria-modal="true" aria-labelledby="modal-pdf-preview-title">
@@ -300,6 +382,7 @@
       </div>
       <div class="modal__footer">
         <button type="button" class="btn btn--ghost" id="btn-pdf-preview-edit">Modifier</button>
+        <button type="button" class="btn btn--secondary" id="btn-pdf-preview-file-client">Dossier client</button>
         <button type="button" class="btn btn--primary" id="btn-pdf-preview-confirm">Enregistrer le PDF</button>
       </div>
     </div>
@@ -388,8 +471,8 @@
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
 <script src="vendor/supabase/supabase.min.js"></script>
-<script src="js/supabase-config.js?v=3"></script>
-<script src="js/auth.js?v=3"></script>
+<script src="js/supabase-config.js?v=5"></script>
+<script src="js/auth.js?v=5"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import * as pdfjsLib from './vendor/pdfjs/pdf.min.mjs';
@@ -397,11 +480,12 @@
   window.pdfjsLib = pdfjsLib;
   window.dispatchEvent(new Event('pdfjslib-ready'));
 </script>
-<script src="js/storage.js?v=3"></script>
-<script src="js/ui.js?v=3"></script>
-<script src="js/speech.js?v=3"></script>
-<script src="js/pdf.js?v=3"></script>
-<script src="js/notes.js?v=3"></script>
-<script src="js/app.js?v=3"></script>
+<script src="js/storage.js?v=5"></script>
+<script src="js/ui.js?v=5"></script>
+<script src="js/speech.js?v=5"></script>
+<script src="js/pdf.js?v=5"></script>
+<script src="js/notes.js?v=5"></script>
+<script src="js/clients.js?v=5"></script>
+<script src="js/app.js?v=5"></script>
 </body>
 </html>

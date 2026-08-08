@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     views.forEach((v) => { v.hidden = v.dataset.view !== name; });
     navButtons.forEach((b) => b.classList.toggle('is-active', b.dataset.nav === name));
     if (name === 'notes') renderNotesList();
+    if (name === 'clients') renderClientsList();
   }
 
   navButtons.forEach((btn) => {
@@ -364,6 +365,46 @@ document.addEventListener('DOMContentLoaded', () => {
     closePdfPreview();
   });
 
+  const btnPdfPreviewFileClient = document.getElementById('btn-pdf-preview-file-client');
+
+  btnPdfPreviewFileClient.addEventListener('click', () => {
+    if (!pendingPdf) return;
+    openClientPicker(async (client) => {
+      const { doc, fileName, patientName, content } = pendingPdf;
+      try {
+        doc.save(fileName);
+        if (editingReportId) {
+          const { error } = await window.dictavoixSupabase
+            .from('reports')
+            .update({
+              client_id: client.id,
+              patient_name: (patientName || '').trim(),
+              content,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', editingReportId);
+          if (error) throw error;
+          editingReportId = null;
+        } else {
+          const { data: userData } = await window.dictavoixSupabase.auth.getUser();
+          const { error } = await window.dictavoixSupabase.from('reports').insert({
+            user_id: userData.user.id,
+            client_id: client.id,
+            patient_name: (patientName || '').trim(),
+            content,
+          });
+          if (error) throw error;
+        }
+        UI.toast(`PDF généré et rangé dans le dossier de ${Clients.fullName(client)}.`, 'success');
+        closePdfPreview();
+        renderReportsList();
+      } catch (err) {
+        console.error(err);
+        UI.toast("Impossible d'enregistrer dans le dossier client.", 'error');
+      }
+    });
+  });
+
   btnExportPdf.addEventListener('click', () => {
     if (!textareaReport.value.trim()) {
       UI.toast('Le compte-rendu est vide.', 'error');
@@ -400,40 +441,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function saveReportRecord({ patientName, content }) {
-    const reports = Storage.getReports();
-    reports.unshift({
-      id: reportUid(),
-      patientName: (patientName || '').trim(),
+  async function saveReportRecord({ patientName, content }) {
+    const { data: userData } = await window.dictavoixSupabase.auth.getUser();
+    const { error } = await window.dictavoixSupabase.from('reports').insert({
+      user_id: userData.user.id,
+      patient_name: (patientName || '').trim(),
       content,
-      createdAt: Date.now(),
     });
-    Storage.setReports(reports);
-    renderReportsList();
+    if (error) console.error('saveReportRecord', error);
+    await renderReportsList();
   }
 
-  function updateReportRecord(id, { patientName, content }) {
-    const reports = Storage.getReports();
-    const idx = reports.findIndex((r) => r.id === id);
-    if (idx === -1) {
-      saveReportRecord({ patientName, content });
+  async function updateReportRecord(id, { patientName, content }) {
+    const { error } = await window.dictavoixSupabase
+      .from('reports')
+      .update({ patient_name: (patientName || '').trim(), content, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) console.error('updateReportRecord', error);
+    await renderReportsList();
+  }
+
+  async function renderReportsList() {
+    const { data: reports, error } = await window.dictavoixSupabase
+      .from('reports')
+      .select('*')
+      .is('client_id', null)
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('renderReportsList', error);
       return;
     }
-    reports[idx] = {
-      ...reports[idx],
-      patientName: (patientName || '').trim(),
-      content,
-      createdAt: Date.now(),
-    };
-    Storage.setReports(reports);
-    renderReportsList();
-  }
-
-  function renderReportsList() {
-    const reports = Storage.getReports();
     reportsListEl.innerHTML = '';
 
-    if (reports.length === 0) {
+    if (!reports || reports.length === 0) {
       reportsEmptyEl.hidden = false;
       return;
     }
@@ -449,16 +489,17 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="list-card__actions">
           <button type="button" class="btn btn--ghost btn--sm" data-action="edit">Modifier</button>
           <button type="button" class="btn btn--ghost btn--sm" data-action="download">Télécharger</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-action="file">Dossier client</button>
           <button type="button" class="btn btn--danger btn--sm" data-action="delete">Supprimer</button>
         </div>
       `;
-      li.querySelector('.list-card__title').textContent = report.patientName || 'Patient non renseigné';
+      li.querySelector('.list-card__title').textContent = report.patient_name || 'Patient non renseigné';
       li.querySelector('.list-card__excerpt').textContent = report.content;
-      li.querySelector('.list-card__meta').textContent = `Exporté le ${formatReportDate(report.createdAt)}`;
+      li.querySelector('.list-card__meta').textContent = `Exporté le ${formatReportDate(new Date(report.created_at).getTime())}`;
 
       li.querySelector('[data-action="edit"]').addEventListener('click', () => {
         editingReportId = report.id;
-        inputPatientName.value = report.patientName || '';
+        inputPatientName.value = report.patient_name || '';
         textareaReport.value = report.content;
         lastSavedSnapshot = currentSnapshot();
         switchView('compte-rendu');
@@ -467,17 +508,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
       li.querySelector('[data-action="download"]').addEventListener('click', () => {
         try {
-          PDF.exportReport({ patientName: report.patientName, content: report.content, profile: Storage.getProfile() });
+          PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile() });
         } catch (err) {
           console.error(err);
           UI.toast("Échec de l'export PDF.", 'error');
         }
       });
 
+      li.querySelector('[data-action="file"]').addEventListener('click', () => {
+        openClientPicker(async (client) => {
+          const { error: linkError } = await window.dictavoixSupabase
+            .from('reports')
+            .update({ client_id: client.id })
+            .eq('id', report.id);
+          if (linkError) {
+            console.error(linkError);
+            UI.toast("Impossible d'enregistrer dans le dossier client.", 'error');
+            return;
+          }
+          UI.toast(`Compte-rendu rangé dans le dossier de ${Clients.fullName(client)}.`, 'success');
+          renderReportsList();
+        });
+      });
+
       li.querySelector('[data-action="delete"]').addEventListener('click', async () => {
         const ok = await UI.confirm('Supprimer ce compte-rendu de l’historique ? Cette action est irréversible.', { okLabel: 'Supprimer' });
         if (!ok) return;
-        Storage.setReports(Storage.getReports().filter((r) => r.id !== report.id));
+        const { error: delError } = await window.dictavoixSupabase.from('reports').delete().eq('id', report.id);
+        if (delError) console.error(delError);
         renderReportsList();
         UI.toast('Compte-rendu supprimé de l’historique.', 'success');
       });
@@ -612,11 +670,23 @@ document.addEventListener('DOMContentLoaded', () => {
     setNoteSpeechStatus('');
   }
 
-  function renderNotesList() {
-    Notes.renderList({
+  async function renderNotesList() {
+    const notes = await Notes.getAll();
+    Notes.renderList(notes, {
       onEdit: openNoteModal,
       onDelete: handleDeleteNote,
       onTransfer: (note) => transferToReport(note.content),
+      onFileToClient: (note) => {
+        openClientPicker(async (client) => {
+          try {
+            await Notes.moveToClient(note.id, client.id);
+            UI.toast(`Note rangée dans le dossier de ${Clients.fullName(client)}.`, 'success');
+            renderNotesList();
+          } catch (err) {
+            UI.toast("Impossible d'enregistrer dans le dossier client.", 'error');
+          }
+        });
+      },
     });
   }
 
@@ -633,7 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
   btnCloseNote.addEventListener('click', () => { resetNoteMic(); UI.closeModal(modalNote); });
   modalNote.addEventListener('click', (e) => { if (e.target === modalNote) { resetNoteMic(); UI.closeModal(modalNote); } });
 
-  formNote.addEventListener('submit', (e) => {
+  formNote.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = inputNoteId.value;
     const payload = { title: inputNoteTitle.value, content: textareaNoteContent.value };
@@ -641,21 +711,25 @@ document.addEventListener('DOMContentLoaded', () => {
       UI.toast('Le contenu de la note est vide.', 'error');
       return;
     }
-    if (id) {
-      Notes.update(id, payload);
-      UI.toast('Note mise à jour.', 'success');
-    } else {
-      Notes.create(payload);
-      UI.toast('Note créée.', 'success');
+    try {
+      if (id) {
+        await Notes.update(id, payload);
+        UI.toast('Note mise à jour.', 'success');
+      } else {
+        await Notes.create(payload);
+        UI.toast('Note créée.', 'success');
+      }
+      UI.closeModal(modalNote);
+      renderNotesList();
+    } catch (err) {
+      UI.toast("Échec de l'enregistrement de la note.", 'error');
     }
-    UI.closeModal(modalNote);
-    renderNotesList();
   });
 
   async function handleDeleteNote(note) {
     const ok = await UI.confirm(`Supprimer la note « ${note.title} » ? Cette action est irréversible.`, { okLabel: 'Supprimer' });
     if (!ok) return;
-    Notes.remove(note.id);
+    await Notes.remove(note.id);
     renderNotesList();
     UI.toast('Note supprimée.', 'success');
   }
@@ -673,6 +747,235 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     transferToReport(textareaNoteContent.value);
+  });
+
+  /* ============ Sélecteur de client (ranger un compte-rendu ou une note) ============ */
+  const modalClientPicker = document.getElementById('modal-client-picker');
+  const inputClientPickerSearch = document.getElementById('input-client-picker-search');
+  const clientPickerListEl = document.getElementById('client-picker-list');
+  const clientPickerEmptyEl = document.getElementById('client-picker-empty');
+  const btnCloseClientPicker = document.getElementById('btn-close-client-picker');
+
+  let clientPickerOnSelect = null;
+  let clientPickerCache = [];
+
+  function renderClientPickerItems(clients) {
+    clientPickerListEl.innerHTML = '';
+    if (clients.length === 0) {
+      clientPickerEmptyEl.hidden = false;
+      return;
+    }
+    clientPickerEmptyEl.hidden = true;
+    clients.forEach((client) => {
+      const li = document.createElement('li');
+      li.className = 'list-card list-card--pickable';
+      li.innerHTML = `<h3 class="list-card__title"></h3>`;
+      li.querySelector('.list-card__title').textContent = Clients.fullName(client);
+      li.addEventListener('click', () => {
+        UI.closeModal(modalClientPicker);
+        if (clientPickerOnSelect) clientPickerOnSelect(client);
+      });
+      clientPickerListEl.appendChild(li);
+    });
+  }
+
+  async function openClientPicker(onSelect) {
+    clientPickerOnSelect = onSelect;
+    inputClientPickerSearch.value = '';
+    UI.openModal(modalClientPicker);
+    clientPickerCache = await Clients.getAll();
+    if (clientPickerCache.length === 0) {
+      UI.toast('Créez d’abord une fiche client dans l’onglet Clients.', 'error');
+    }
+    renderClientPickerItems(clientPickerCache);
+  }
+
+  inputClientPickerSearch.addEventListener('input', () => {
+    const q = inputClientPickerSearch.value.trim().toLowerCase();
+    const filtered = q
+      ? clientPickerCache.filter((c) => Clients.fullName(c).toLowerCase().includes(q))
+      : clientPickerCache;
+    renderClientPickerItems(filtered);
+  });
+
+  btnCloseClientPicker.addEventListener('click', () => UI.closeModal(modalClientPicker));
+  modalClientPicker.addEventListener('click', (e) => { if (e.target === modalClientPicker) UI.closeModal(modalClientPicker); });
+
+  /* ============ Fiches client ============ */
+  const clientsListEl = document.getElementById('clients-list');
+  const clientsEmptyEl = document.getElementById('clients-empty');
+  const inputClientSearch = document.getElementById('input-client-search');
+  const btnNewClient = document.getElementById('btn-new-client');
+
+  const modalClient = document.getElementById('modal-client');
+  const modalClientTitle = document.getElementById('modal-client-title');
+  const formClient = document.getElementById('form-client');
+  const inputClientId = document.getElementById('input-client-id');
+  const inputClientFirstName = document.getElementById('input-client-first-name');
+  const inputClientLastName = document.getElementById('input-client-last-name');
+  const inputClientAddress = document.getElementById('input-client-address');
+  const inputClientContact = document.getElementById('input-client-contact');
+  const inputClientQuickNote = document.getElementById('input-client-quick-note');
+  const clientHistoryEl = document.getElementById('client-history');
+  const clientReportsListEl = document.getElementById('client-reports-list');
+  const clientReportsEmptyEl = document.getElementById('client-reports-empty');
+  const clientNotesListEl = document.getElementById('client-notes-list');
+  const clientNotesEmptyEl = document.getElementById('client-notes-empty');
+  const btnCloseClient = document.getElementById('btn-close-client');
+  const btnDeleteClient = document.getElementById('btn-delete-client');
+
+  let clientsCache = [];
+
+  async function renderClientsList() {
+    clientsCache = await Clients.getAll();
+    applyClientSearchFilter();
+  }
+
+  function applyClientSearchFilter() {
+    const q = inputClientSearch.value.trim().toLowerCase();
+    const filtered = q
+      ? clientsCache.filter(
+          (c) => Clients.fullName(c).toLowerCase().includes(q) || (c.address || '').toLowerCase().includes(q)
+        )
+      : clientsCache;
+    renderClientsListItems(filtered);
+  }
+
+  function renderClientsListItems(clients) {
+    clientsListEl.innerHTML = '';
+    if (clients.length === 0) {
+      clientsEmptyEl.hidden = false;
+      return;
+    }
+    clientsEmptyEl.hidden = true;
+    clients.forEach((client) => {
+      const li = document.createElement('li');
+      li.className = 'list-card';
+      li.innerHTML = `
+        <h3 class="list-card__title"></h3>
+        <p class="list-card__excerpt"></p>
+        <div class="list-card__actions">
+          <button type="button" class="btn btn--ghost btn--sm" data-action="open">Ouvrir</button>
+        </div>
+      `;
+      li.querySelector('.list-card__title').textContent = Clients.fullName(client);
+      li.querySelector('.list-card__excerpt').textContent = client.address || client.contact_info || '';
+      li.querySelector('[data-action="open"]').addEventListener('click', () => openClientModal(client));
+      clientsListEl.appendChild(li);
+    });
+  }
+
+  inputClientSearch.addEventListener('input', applyClientSearchFilter);
+  btnNewClient.addEventListener('click', () => openClientModal(null));
+
+  async function renderClientHistory(clientId) {
+    const [reports, notes] = await Promise.all([Clients.getReports(clientId), Clients.getNotes(clientId)]);
+
+    clientReportsListEl.innerHTML = '';
+    if (reports.length === 0) {
+      clientReportsEmptyEl.hidden = false;
+    } else {
+      clientReportsEmptyEl.hidden = true;
+      reports.forEach((report) => {
+        const li = document.createElement('li');
+        li.className = 'list-card';
+        li.innerHTML = `
+          <p class="list-card__excerpt"></p>
+          <span class="list-card__meta"></span>
+          <div class="list-card__actions">
+            <button type="button" class="btn btn--ghost btn--sm" data-action="download">Télécharger</button>
+          </div>
+        `;
+        li.querySelector('.list-card__excerpt').textContent = report.content;
+        li.querySelector('.list-card__meta').textContent = `Exporté le ${formatReportDate(new Date(report.created_at).getTime())}`;
+        li.querySelector('[data-action="download"]').addEventListener('click', () => {
+          try {
+            PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile() });
+          } catch (err) {
+            console.error(err);
+            UI.toast("Échec de l'export PDF.", 'error');
+          }
+        });
+        clientReportsListEl.appendChild(li);
+      });
+    }
+
+    clientNotesListEl.innerHTML = '';
+    if (notes.length === 0) {
+      clientNotesEmptyEl.hidden = false;
+    } else {
+      clientNotesEmptyEl.hidden = true;
+      notes.forEach((note) => {
+        const li = document.createElement('li');
+        li.className = 'list-card';
+        li.innerHTML = `
+          <h3 class="list-card__title"></h3>
+          <p class="list-card__excerpt"></p>
+          <span class="list-card__meta"></span>
+        `;
+        li.querySelector('.list-card__title').textContent = note.title;
+        li.querySelector('.list-card__excerpt').textContent = note.content;
+        li.querySelector('.list-card__meta').textContent = `Modifiée le ${Notes.formatDate(note.updated_at)}`;
+        clientNotesListEl.appendChild(li);
+      });
+    }
+  }
+
+  async function openClientModal(client) {
+    inputClientId.value = client ? client.id : '';
+    inputClientFirstName.value = (client && client.first_name) || '';
+    inputClientLastName.value = (client && client.last_name) || '';
+    inputClientAddress.value = (client && client.address) || '';
+    inputClientContact.value = (client && client.contact_info) || '';
+    inputClientQuickNote.value = (client && client.quick_note) || '';
+    modalClientTitle.textContent = client ? Clients.fullName(client) : 'Nouveau client';
+    btnDeleteClient.hidden = !client;
+    clientHistoryEl.hidden = !client;
+    UI.openModal(modalClient);
+    if (client) await renderClientHistory(client.id);
+  }
+
+  btnCloseClient.addEventListener('click', () => UI.closeModal(modalClient));
+  modalClient.addEventListener('click', (e) => { if (e.target === modalClient) UI.closeModal(modalClient); });
+
+  formClient.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = inputClientId.value;
+    const fields = {
+      firstName: inputClientFirstName.value,
+      lastName: inputClientLastName.value,
+      address: inputClientAddress.value,
+      contactInfo: inputClientContact.value,
+      quickNote: inputClientQuickNote.value,
+    };
+    try {
+      if (id) {
+        await Clients.update(id, fields);
+        UI.toast('Client mis à jour.', 'success');
+      } else {
+        await Clients.create(fields);
+        UI.toast('Client créé.', 'success');
+      }
+      UI.closeModal(modalClient);
+      renderClientsList();
+    } catch (err) {
+      UI.toast("Impossible d'enregistrer ce client.", 'error');
+    }
+  });
+
+  btnDeleteClient.addEventListener('click', async () => {
+    const id = inputClientId.value;
+    if (!id) return;
+    const ok = await UI.confirm('Supprimer cette fiche client ? Cette action est irréversible.', { okLabel: 'Supprimer' });
+    if (!ok) return;
+    try {
+      await Clients.remove(id);
+      UI.closeModal(modalClient);
+      renderClientsList();
+      UI.toast('Client supprimé.', 'success');
+    } catch (err) {
+      UI.toast('Échec de la suppression.', 'error');
+    }
   });
 
   /* ============ Initialisation ============ */
