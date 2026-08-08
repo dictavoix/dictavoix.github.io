@@ -954,3 +954,19 @@ input, textarea {
   margin-top: 14px;
   width: 100%;
 }
+
+.link-button {
+  border: none;
+  background: transparent;
+  color: var(--ink-accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 12px;
+  padding: 4px;
+  text-align: center;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}

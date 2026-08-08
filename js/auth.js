@@ -10,6 +10,8 @@
   const loginRemember = document.getElementById('login-remember');
   const lockStatus = document.getElementById('lock-status');
 
+  const btnForgotPassword = document.getElementById('btn-forgot-password');
+
   const formSetPassword = document.getElementById('form-set-password');
   const setpwPassword = document.getElementById('setpw-password');
   const setpwPasswordConfirm = document.getElementById('setpw-password-confirm');
@@ -125,6 +127,23 @@
     setStatus(setpwStatus, '');
     history.replaceState(null, '', window.location.pathname);
     showApp();
+  });
+
+  btnForgotPassword.addEventListener('click', async () => {
+    const email = loginEmail.value.trim();
+    if (!email) {
+      setStatus(lockStatus, "Entrez d'abord votre email ci-dessus, puis cliquez sur ce lien.", 'error');
+      return;
+    }
+    setStatus(lockStatus, 'Envoi en cours…');
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + window.location.pathname,
+    });
+    if (error) {
+      setStatus(lockStatus, "Impossible d'envoyer l'email : " + error.message, 'error');
+      return;
+    }
+    setStatus(lockStatus, 'Email envoyé : suivez le lien reçu pour créer un nouveau mot de passe.');
   });
 
   btnLogout.addEventListener('click', async () => {
