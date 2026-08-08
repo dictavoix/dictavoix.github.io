@@ -29,6 +29,8 @@
   const REMEMBER_KEY = 'dictavoix_remember_me';
   const BIOMETRIC_CRED_KEY = 'dictavoix_biometric_credential_id';
   const BIOMETRIC_SKIPPED_KEY = 'dictavoix_biometric_skipped';
+  const BIOMETRIC_TRUST_UNTIL_KEY = 'dictavoix_biometric_trust_until';
+  const BIOMETRIC_TRUST_WINDOW_MS = 5 * 60 * 1000;
   let justLoggedIn = false;
 
   function setStatus(el, message, tone) {
@@ -37,7 +39,17 @@
     else delete el.dataset.tone;
   }
 
+  /* Après un déverrouillage (Face ID ou mot de passe), on reste "de confiance"
+     quelques minutes : ça évite de redemander Face ID quand l'appli est juste
+     mise en arrière-plan brièvement (ex: partage/téléchargement d'un PDF qui
+     ouvre la feuille de partage iOS puis revient tout de suite dans l'appli). */
+  function isBiometricTrustActive() {
+    const until = Number(localStorage.getItem(BIOMETRIC_TRUST_UNTIL_KEY) || 0);
+    return Date.now() < until;
+  }
+
   function showApp() {
+    localStorage.setItem(BIOMETRIC_TRUST_UNTIL_KEY, String(Date.now() + BIOMETRIC_TRUST_WINDOW_MS));
     appRoot.hidden = false;
     lockScreen.hidden = true;
     btnLogout.hidden = false;
@@ -307,7 +319,7 @@
         showSetPasswordForm();
       } else if (justLoggedIn) {
         /* Géré par le formulaire de connexion lui-même (afterFreshLogin). */
-      } else if (hasBiometricEnrolled()) {
+      } else if (hasBiometricEnrolled() && !isBiometricTrustActive()) {
         showBiometricLock();
       } else {
         showApp();
@@ -319,7 +331,7 @@
     if (data.session) {
       if (isRecoveryOrInvite) {
         showSetPasswordForm();
-      } else if (hasBiometricEnrolled()) {
+      } else if (hasBiometricEnrolled() && !isBiometricTrustActive()) {
         showBiometricLock();
       } else {
         showApp();
