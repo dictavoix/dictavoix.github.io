@@ -756,6 +756,34 @@ document.addEventListener('DOMContentLoaded', () => {
     transferToReport(textareaNoteContent.value);
   });
 
+  const btnFileNoteClient = document.getElementById('btn-file-note-client');
+
+  btnFileNoteClient.addEventListener('click', () => {
+    if (!textareaNoteContent.value.trim()) {
+      UI.toast('Le contenu de la note est vide.', 'error');
+      return;
+    }
+    openClientPicker(async (client) => {
+      try {
+        const id = inputNoteId.value;
+        const payload = { title: inputNoteTitle.value, content: textareaNoteContent.value };
+        if (id) {
+          await Notes.update(id, payload);
+          await Notes.moveToClient(id, client.id);
+        } else {
+          const note = await Notes.create(payload);
+          await Notes.moveToClient(note.id, client.id);
+        }
+        UI.closeModal(modalNote);
+        renderNotesList();
+        UI.toast(`Note rangée dans le dossier de ${Clients.fullName(client)}.`, 'success');
+      } catch (err) {
+        console.error(err);
+        UI.toast("Impossible d'enregistrer dans le dossier client.", 'error');
+      }
+    });
+  });
+
   /* ============ Sélecteur de client (ranger un compte-rendu ou une note) ============ */
   const modalClientPicker = document.getElementById('modal-client-picker');
   const inputClientPickerSearch = document.getElementById('input-client-picker-search');
@@ -891,6 +919,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="list-card__meta"></span>
           <div class="list-card__actions">
             <button type="button" class="btn btn--ghost btn--sm" data-action="download">Télécharger</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-action="edit">Modifier</button>
+            <button type="button" class="btn btn--danger btn--sm" data-action="delete">Supprimer</button>
           </div>
         `;
         li.querySelector('.list-card__excerpt').textContent = report.content;
@@ -902,6 +932,27 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(err);
             UI.toast("Échec de l'export PDF.", 'error');
           }
+        });
+        li.querySelector('[data-action="edit"]').addEventListener('click', () => {
+          editingReportId = report.id;
+          inputPatientName.value = report.patient_name || '';
+          textareaReport.value = report.content;
+          lastSavedSnapshot = currentSnapshot();
+          UI.closeModal(modalClient);
+          switchView('compte-rendu');
+          UI.toast('Compte-rendu chargé pour modification.', 'success');
+        });
+        li.querySelector('[data-action="delete"]').addEventListener('click', async () => {
+          const ok = await UI.confirm('Supprimer ce compte-rendu ? Cette action est irréversible.', { okLabel: 'Supprimer' });
+          if (!ok) return;
+          const { error } = await window.dictavoixSupabase.from('reports').delete().eq('id', report.id);
+          if (error) {
+            console.error(error);
+            UI.toast('Échec de la suppression.', 'error');
+            return;
+          }
+          renderClientHistory(clientId);
+          UI.toast('Compte-rendu supprimé.', 'success');
         });
         clientReportsListEl.appendChild(li);
       });
@@ -919,10 +970,25 @@ document.addEventListener('DOMContentLoaded', () => {
           <h3 class="list-card__title"></h3>
           <p class="list-card__excerpt"></p>
           <span class="list-card__meta"></span>
+          <div class="list-card__actions">
+            <button type="button" class="btn btn--ghost btn--sm" data-action="edit">Modifier</button>
+            <button type="button" class="btn btn--danger btn--sm" data-action="delete">Supprimer</button>
+          </div>
         `;
         li.querySelector('.list-card__title').textContent = note.title;
         li.querySelector('.list-card__excerpt').textContent = note.content;
         li.querySelector('.list-card__meta').textContent = `Modifiée le ${Notes.formatDate(note.updated_at)}`;
+        li.querySelector('[data-action="edit"]').addEventListener('click', () => {
+          UI.closeModal(modalClient);
+          openNoteModal(note);
+        });
+        li.querySelector('[data-action="delete"]').addEventListener('click', async () => {
+          const ok = await UI.confirm(`Supprimer la note « ${note.title} » ? Cette action est irréversible.`, { okLabel: 'Supprimer' });
+          if (!ok) return;
+          await Notes.remove(note.id);
+          renderClientHistory(clientId);
+          UI.toast('Note supprimée.', 'success');
+        });
         clientNotesListEl.appendChild(li);
       });
     }

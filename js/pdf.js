@@ -237,19 +237,19 @@ const PDF = (() => {
     return { doc, fileName: fileNameFor(patientName) };
   }
 
-  /* Sur iOS/Safari, doc.save() (téléchargement classique) navigue la page en cours
-     vers la visionneuse PDF native, sans moyen fiable de revenir à l'application.
-     On ouvre plutôt un vrai nouvel onglet, que l'on peut fermer normalement. */
-  function isIOSLike() {
-    return /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  }
-
+  /* Déclenche un vrai téléchargement via un lien <a download>, plutôt que
+     doc.save() ou l'ouverture d'un nouvel onglet (peu fiables en PWA iOS :
+     page blanche, ou navigation qui fait quitter l'application). */
   function savePdfFile(doc, fileName) {
-    if (isIOSLike()) {
-      doc.output('dataurlnewwindow', { filename: fileName });
-    } else {
-      doc.save(fileName);
-    }
+    const blob = doc.output('blob');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   /* Construit puis enregistre directement (téléchargement immédiat, sans prévisualisation) */

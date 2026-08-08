@@ -25,7 +25,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=9">
+<link rel="stylesheet" href="css/style.css?v=10">
 <link rel="modulepreload" href="vendor/pdfjs/pdf.min.mjs">
 <link rel="preload" href="vendor/pdfjs/pdf.worker.min.mjs" as="script" crossorigin>
 </head>
@@ -296,9 +296,10 @@
         <textarea id="textarea-note-content" placeholder="Notez vos observations…"></textarea>
         <p id="note-speech-status" class="speech-status" aria-live="polite"></p>
       </div>
-      <div class="modal__footer modal__footer--split">
-        <button type="button" class="btn btn--secondary" id="btn-transfer-note">Transférer vers Compte-rendu</button>
+      <div class="modal__footer modal__footer--pdf">
         <button type="submit" class="btn btn--primary">Enregistrer</button>
+        <button type="button" class="btn btn--secondary" id="btn-file-note-client">Dossier client</button>
+        <button type="button" class="btn btn--ghost" id="btn-transfer-note">Transférer vers Compte-rendu</button>
       </div>
     </form>
   </div>
@@ -426,9 +427,13 @@
         San Francisco, CA 94107, USA<br>
         https://github.com</p>
 
-        <p><strong>Authentification</strong><br>
-        La connexion des utilisateurs (création de compte, mot de passe) est gérée par Supabase, prestataire indépendant.<br>
+        <p><strong>Authentification et stockage des données</strong><br>
+        La connexion des utilisateurs (création de compte, mot de passe) ainsi que le stockage des comptes-rendus, notes et fiches client sont gérés par Supabase, prestataire indépendant.<br>
         https://supabase.com</p>
+
+        <p><strong>Organisation automatique par IA (fonctionnalité optionnelle)</strong><br>
+        Lorsque vous utilisez le bouton "Organiser avec l'IA", le contenu de votre dictée est transmis à OpenAI (ChatGPT) pour être restructuré, puis renvoyé dans l'application. Cette transmission n'a lieu que si vous cliquez sur ce bouton.<br>
+        https://openai.com</p>
 
         <p><strong>Propriété intellectuelle</strong><br>
         L'ensemble des éléments (textes, graphismes, logo, logiciel) constituant cette application est la propriété exclusive de Dictavoix, sauf mention contraire, et est protégé par le droit de la propriété intellectuelle.</p>
@@ -436,17 +441,17 @@
 
       <div class="legal-section">
         <h3>Politique de confidentialité</h3>
-        <p>Cette application ne dispose d'aucun serveur de stockage pour le contenu de vos comptes-rendus et notes. Toutes ces informations sont enregistrées exclusivement sur votre appareil, dans la mémoire locale de votre navigateur (localStorage).</p>
+        <p>Le contenu de vos comptes-rendus, notes et fiches client est stocké de façon sécurisée dans la base de données de Supabase, notre prestataire technique. Chaque compte est isolé : seul vous, une fois connecté(e) avec votre identifiant et votre mot de passe, pouvez accéder à vos propres données.</p>
 
         <p><strong>Conséquences pratiques :</strong></p>
         <ul>
-          <li>Personne d'autre que vous n'a accès au contenu de vos comptes-rendus et notes, y compris l'éditeur de l'application.</li>
-          <li>Ce contenu n'est jamais transmis à un serveur distant.</li>
-          <li>Si vous changez de navigateur ou d'appareil, ou si vous videz le cache de votre navigateur, ces données seront perdues. Pensez à exporter régulièrement vos comptes-rendus en PDF.</li>
+          <li>Personne d'autre que vous n'a accès au contenu de vos comptes-rendus, notes et fiches client — ni les autres utilisateurs de l'application, ni l'éditeur de l'application lui-même.</li>
+          <li>Vos données restent accessibles depuis n'importe quel appareil sur lequel vous vous connectez, et ne sont pas perdues si vous changez de téléphone ou d'ordinateur.</li>
+          <li>Supabase agit uniquement comme hébergeur technique de vos données et n'y accède pas pour son propre usage.</li>
         </ul>
 
-        <p><strong>Compte et connexion</strong><br>
-        Pour sécuriser l'accès à l'application, seuls votre email et votre mot de passe sont gérés par Supabase, prestataire indépendant spécialisé dans l'authentification. Ces informations de connexion ne comprennent aucune donnée de vos clients/patients et restent distinctes du contenu de vos comptes-rendus, qui n'est jamais transmis à Supabase.</p>
+        <p><strong>Organisation automatique par IA</strong><br>
+        Le bouton "Organiser avec l'IA" est optionnel : si vous l'utilisez, le texte de votre dictée est envoyé à OpenAI (ChatGPT) uniquement pour être restructuré, puis le résultat vous est renvoyé. En dehors de cette action volontaire, aucun contenu n'est transmis à OpenAI.</p>
 
         <p><strong>Dictée vocale</strong><br>
         La fonction de dictée vocale utilise la reconnaissance vocale intégrée à votre navigateur (Web Speech API). Selon le navigateur utilisé (par ex. Google Chrome), l'audio capturé par votre microphone peut être transmis aux serveurs de l'éditeur du navigateur (par ex. Google) pour être converti en texte. Aucun enregistrement audio n'est conservé par l'éditeur de l'application ; seul le texte résultant reste stocké localement sur votre appareil.</p>
@@ -471,8 +476,8 @@
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
 <script src="vendor/supabase/supabase.min.js"></script>
-<script src="js/supabase-config.js?v=9"></script>
-<script src="js/auth.js?v=9"></script>
+<script src="js/supabase-config.js?v=10"></script>
+<script src="js/auth.js?v=10"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import * as pdfjsLib from './vendor/pdfjs/pdf.min.mjs';
@@ -480,12 +485,12 @@
   window.pdfjsLib = pdfjsLib;
   window.dispatchEvent(new Event('pdfjslib-ready'));
 </script>
-<script src="js/storage.js?v=9"></script>
-<script src="js/ui.js?v=9"></script>
-<script src="js/speech.js?v=9"></script>
-<script src="js/pdf.js?v=9"></script>
-<script src="js/notes.js?v=9"></script>
-<script src="js/clients.js?v=9"></script>
-<script src="js/app.js?v=9"></script>
+<script src="js/storage.js?v=10"></script>
+<script src="js/ui.js?v=10"></script>
+<script src="js/speech.js?v=10"></script>
+<script src="js/pdf.js?v=10"></script>
+<script src="js/notes.js?v=10"></script>
+<script src="js/clients.js?v=10"></script>
+<script src="js/app.js?v=10"></script>
 </body>
 </html>
