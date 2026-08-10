@@ -70,3 +70,31 @@ create policy "Users manage their own session notes"
   for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- Acceptation des conditions générales de vente et d'utilisation.
+-- Une ligne par utilisateur et par version acceptée : sert de preuve du
+-- consentement recueilli avant l'accès à l'application. Les lignes ne sont
+-- jamais modifiables ni supprimables par l'utilisateur (pas de policy update
+-- ni delete), pour que la preuve reste intacte.
+
+create table public.cgv_acceptances (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  version text not null,
+  accepted_at timestamptz not null default now(),
+  user_email text not null default '',
+  user_agent text not null default '',
+  unique (user_id, version)
+);
+
+alter table public.cgv_acceptances enable row level security;
+
+create policy "Users read their own CGV acceptances"
+  on public.cgv_acceptances
+  for select
+  using (auth.uid() = user_id);
+
+create policy "Users record their own CGV acceptance"
+  on public.cgv_acceptances
+  for insert
+  with check (auth.uid() = user_id);

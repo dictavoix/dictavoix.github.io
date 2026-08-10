@@ -26,6 +26,19 @@
   const btnUsePasswordInstead = document.getElementById('btn-use-password-instead');
   const biometricStatus = document.getElementById('biometric-status');
 
+  const screenCgv = document.getElementById('screen-cgv');
+  const cgvBox = document.getElementById('cgv-box');
+  const cgvAccept = document.getElementById('cgv-accept');
+  const btnAcceptCgv = document.getElementById('btn-accept-cgv');
+  const btnRefuseCgv = document.getElementById('btn-refuse-cgv');
+  const cgvStatus = document.getElementById('cgv-status');
+
+  /* Version des conditions générales en vigueur. À changer à chaque modification
+     de fond du texte dans le <template id="tpl-cgv"> de index.html : l'acceptation
+     est alors redemandée à tout le monde à la connexion suivante, et une nouvelle
+     ligne est enregistrée dans la table cgv_acceptances. */
+  const CGV_VERSION = '2026-08-10';
+
   const REMEMBER_KEY = 'dictavoix_remember_me';
   const BIOMETRIC_CRED_KEY = 'dictavoix_biometric_credential_id';
   const BIOMETRIC_SKIPPED_KEY = 'dictavoix_biometric_skipped';
@@ -48,51 +61,44 @@
     return Date.now() < until;
   }
 
-  function showApp() {
+  /* Affiche l'écran de verrouillage en ne laissant visible que `visible`. */
+  function showLockPanel(visible) {
+    appRoot.hidden = true;
+    lockScreen.hidden = false;
+    btnLogout.hidden = true;
+    [formLogin, formSetPassword, screenBiometricPrompt, screenBiometricLock, screenCgv].forEach((panel) => {
+      panel.hidden = panel !== visible;
+    });
+  }
+
+  function enterApp() {
     localStorage.setItem(BIOMETRIC_TRUST_UNTIL_KEY, String(Date.now() + BIOMETRIC_TRUST_WINDOW_MS));
     appRoot.hidden = false;
     lockScreen.hidden = true;
     btnLogout.hidden = false;
   }
 
-  function showLoginForm() {
-    appRoot.hidden = true;
-    lockScreen.hidden = false;
-    btnLogout.hidden = true;
-    formSetPassword.hidden = true;
-    screenBiometricPrompt.hidden = true;
-    screenBiometricLock.hidden = true;
-    formLogin.hidden = false;
+  /* Aucun accès à l'application tant que la version en vigueur des conditions
+     générales n'a pas été acceptée : le passage par cet écran est obligatoire
+     pour tout le monde, y compris les comptes créés avant sa mise en place. */
+  async function showApp() {
+    if (await hasAcceptedCurrentCgv()) {
+      enterApp();
+      return;
+    }
+    showCgvScreen();
   }
 
-  function showSetPasswordForm() {
-    appRoot.hidden = true;
-    lockScreen.hidden = false;
-    btnLogout.hidden = true;
-    formLogin.hidden = true;
-    screenBiometricPrompt.hidden = true;
-    screenBiometricLock.hidden = true;
-    formSetPassword.hidden = false;
-  }
+  function showLoginForm() { showLockPanel(formLogin); }
+  function showSetPasswordForm() { showLockPanel(formSetPassword); }
+  function showBiometricPrompt() { showLockPanel(screenBiometricPrompt); }
+  function showBiometricLock() { showLockPanel(screenBiometricLock); }
 
-  function showBiometricPrompt() {
-    appRoot.hidden = true;
-    lockScreen.hidden = false;
-    btnLogout.hidden = true;
-    formLogin.hidden = true;
-    formSetPassword.hidden = true;
-    screenBiometricLock.hidden = true;
-    screenBiometricPrompt.hidden = false;
-  }
-
-  function showBiometricLock() {
-    appRoot.hidden = true;
-    lockScreen.hidden = false;
-    btnLogout.hidden = true;
-    formLogin.hidden = true;
-    formSetPassword.hidden = true;
-    screenBiometricPrompt.hidden = true;
-    screenBiometricLock.hidden = false;
+  function showCgvScreen() {
+    cgvAccept.checked = false;
+    btnAcceptCgv.disabled = true;
+    setStatus(cgvStatus, '');
+    showLockPanel(screenCgv);
   }
 
   /* ---------- Déverrouillage rapide par Face ID / empreinte (WebAuthn) ----------
@@ -209,6 +215,74 @@
       btn.setAttribute('aria-label', isHidden ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
       btn.classList.toggle('is-visible', isHidden);
     });
+  });
+
+  /* ---------- Conditions générales ----------
+     Le texte vit dans un <template> unique de index.html : on le recopie à la
+     fois dans l'écran de consentement et dans la fenêtre "Mentions légales",
+     pour qu'il n'existe jamais deux versions divergentes du même texte. */
+  const cgvTemplate = document.getElementById('tpl-cgv');
+  const legalCgvSlot = document.getElementById('legal-cgv-slot');
+  if (cgvTemplate) {
+    if (cgvBox) cgvBox.appendChild(cgvTemplate.content.cloneNode(true));
+    if (legalCgvSlot) legalCgvSlot.appendChild(cgvTemplate.content.cloneNode(true));
+  }
+
+  /* La preuve de l'accord vit dans la base ; la trace locale ci-dessous n'est
+     qu'un pense-bête d'affichage, pour ne pas réafficher les conditions à
+     quelqu'un qui les a déjà acceptées mais dont l'appareil est hors réseau. */
+  const CGV_LOCAL_KEY = 'dictavoix_cgv_accepted_version';
+
+  async function hasAcceptedCurrentCgv() {
+    const { data, error } = await supabaseClient
+      .from('cgv_acceptances')
+      .select('id')
+      .eq('version', CGV_VERSION)
+      .limit(1);
+    if (error) {
+      console.error('Vérification des conditions générales impossible', error);
+      return localStorage.getItem(CGV_LOCAL_KEY) === CGV_VERSION;
+    }
+    const accepted = Array.isArray(data) && data.length > 0;
+    if (accepted) localStorage.setItem(CGV_LOCAL_KEY, CGV_VERSION);
+    return accepted;
+  }
+
+  async function recordCgvAcceptance() {
+    const { data } = await supabaseClient.auth.getUser();
+    const user = data && data.user;
+    if (!user) return { error: new Error('Session expirée, reconnectez-vous.') };
+    return supabaseClient.from('cgv_acceptances').insert({
+      user_id: user.id,
+      version: CGV_VERSION,
+      user_email: user.email || '',
+      user_agent: navigator.userAgent || '',
+    });
+  }
+
+  cgvAccept.addEventListener('change', () => {
+    btnAcceptCgv.disabled = !cgvAccept.checked;
+  });
+
+  btnAcceptCgv.addEventListener('click', async () => {
+    if (!cgvAccept.checked) return;
+    btnAcceptCgv.disabled = true;
+    setStatus(cgvStatus, 'Enregistrement de votre acceptation…');
+    const { error } = await recordCgvAcceptance();
+    /* 23505 = doublon sur (user_id, version) : l'acceptation existe déjà,
+       par exemple si le premier envoi a abouti malgré une erreur réseau. */
+    if (error && error.code !== '23505') {
+      btnAcceptCgv.disabled = false;
+      setStatus(cgvStatus, "Impossible d'enregistrer votre acceptation : " + error.message, 'error');
+      return;
+    }
+    localStorage.setItem(CGV_LOCAL_KEY, CGV_VERSION);
+    setStatus(cgvStatus, '');
+    enterApp();
+  });
+
+  btnRefuseCgv.addEventListener('click', async () => {
+    await supabaseClient.auth.signOut();
   });
 
   const hash = window.location.hash || '';

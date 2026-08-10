@@ -25,7 +25,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=17">
+<link rel="stylesheet" href="css/style.css?v=18">
 <link rel="modulepreload" href="vendor/pdfjs/pdf.min.mjs">
 <link rel="preload" href="vendor/pdfjs/pdf.worker.min.mjs" as="script" crossorigin>
 </head>
@@ -230,6 +230,18 @@
       <p class="lock-screen__status" id="setpw-status" aria-live="polite"></p>
     </form>
 
+    <div class="lock-form" id="screen-cgv" hidden>
+      <p class="lock-screen__text">Avant d'accéder à l'application, merci de prendre connaissance des conditions générales de vente et d'utilisation.</p>
+      <div class="cgv-box legal-section" id="cgv-box" tabindex="0"></div>
+      <label class="checkbox-label">
+        <input type="checkbox" id="cgv-accept">
+        J'ai lu et j'accepte les conditions générales de vente et d'utilisation.
+      </label>
+      <button type="button" class="btn btn--primary" id="btn-accept-cgv" disabled>Accepter et continuer</button>
+      <button type="button" class="link-button" id="btn-refuse-cgv">Refuser et me déconnecter</button>
+      <p class="lock-screen__status" id="cgv-status" aria-live="polite"></p>
+    </div>
+
     <div class="lock-form" id="screen-biometric-prompt" hidden>
       <p class="lock-screen__text">Activer le déverrouillage rapide par Face ID / empreinte sur cet appareil ?</p>
       <button type="button" class="btn btn--primary" id="btn-enable-biometric">Activer</button>
@@ -419,6 +431,8 @@
       <button type="button" class="icon-btn" id="btn-close-legal" aria-label="Fermer">✕</button>
     </div>
     <div class="modal__body">
+      <div class="legal-section" id="legal-cgv-slot"></div>
+
       <div class="legal-section">
         <h3>Mentions légales</h3>
         <p><strong>Éditeur</strong><br>
@@ -483,9 +497,64 @@
 <!-- Toasts -->
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
+<!-- Conditions générales : source unique, injectée dans l'écran de consentement
+     et dans la fenêtre "Mentions légales". Toute modification de fond doit
+     s'accompagner d'un changement de CGV_VERSION dans js/auth.js, pour que
+     l'acceptation soit à nouveau demandée aux utilisateurs. -->
+<template id="tpl-cgv">
+  <h3>Conditions générales de vente et d'utilisation</h3>
+  <p class="legal-version">Version du 10 août 2026</p>
+
+  <p><strong>1. Objet</strong><br>
+  Les présentes conditions régissent l'abonnement à l'application Dictavoix et son utilisation. Elles sont acceptées par l'utilisateur avant tout accès à l'application. Dictavoix est éditée par Service CB, entreprise individuelle (auto-entrepreneur), représentée par Barbara CONSTANT — contact : servicecb26@gmail.com.</p>
+
+  <p><strong>2. Description du service</strong><br>
+  Dictavoix est une application web permettant de dicter et de rédiger des comptes-rendus de séance, de les organiser automatiquement, d'y joindre des photos, de les exporter en PDF à l'en-tête de l'utilisateur, et de tenir des fiches client et des notes de séance. Le service est réservé à un usage professionnel.</p>
+
+  <p><strong>3. Accès et compte utilisateur</strong><br>
+  L'accès se fait par un compte individuel créé sur invitation de l'éditeur. L'utilisateur choisit son mot de passe lors de l'activation et en assure la confidentialité. Le compte est strictement personnel : son partage avec un tiers n'est pas autorisé. L'utilisateur informe l'éditeur sans délai de toute utilisation non autorisée de son compte.</p>
+
+  <p><strong>4. Tarifs</strong><br>
+  L'abonnement est proposé aux tarifs suivants :</p>
+  <ul>
+    <li>Formule mensuelle : 15 € par mois.</li>
+    <li>Formule annuelle : 150 € par an, payables d'avance, soit deux mois offerts par rapport à la formule mensuelle.</li>
+    <li>Offre fondateur, réservée aux dix premiers abonnés : 9 € par mois. Ce tarif est garanti sans limitation de durée tant que l'abonnement reste actif, sans interruption. En cas de résiliation puis de réinscription, le tarif en vigueur au jour de la réinscription s'applique. La formule annuelle correspondante est de 90 € par an.</li>
+  </ul>
+  <p>TVA non applicable, article 293 B du Code général des impôts. Les tarifs peuvent être révisés pour l'avenir ; toute révision est notifiée par email au moins un mois avant sa prise d'effet et ne s'applique jamais à une période déjà réglée, ni au tarif fondateur défini ci-dessus.</p>
+
+  <p><strong>5. Paiement</strong><br>
+  Le paiement s'effectue en dehors de l'application, sur facture émise par l'éditeur, par virement bancaire. Le compte est ouvert ou maintenu actif après réception du paiement. En cas de défaut de paiement persistant plus de quinze jours après relance, l'éditeur peut suspendre l'accès au compte, après information préalable de l'utilisateur par email.</p>
+
+  <p><strong>6. Durée et résiliation</strong><br>
+  La formule mensuelle est sans engagement : elle se poursuit de mois en mois et peut être résiliée à tout moment. La formule annuelle est conclue pour douze mois. Dans les deux cas, la résiliation s'effectue par simple demande adressée par email à servicecb26@gmail.com, sans justification ni formalité. L'accès reste ouvert jusqu'au terme de la période déjà réglée. L'éditeur peut résilier l'abonnement en cas de manquement grave de l'utilisateur aux présentes conditions, après mise en demeure restée sans effet pendant quinze jours.</p>
+
+  <p><strong>7. Remboursement</strong><br>
+  L'utilisateur dispose d'un délai de quatorze jours à compter de chaque paiement pour demander le remboursement intégral de celui-ci, sans avoir à se justifier. Ce délai s'applique au premier paiement comme à chaque renouvellement, mensuel ou annuel. La demande est adressée par email à servicecb26@gmail.com et le remboursement est effectué sous quatorze jours.</p>
+  <p>Passé ce délai, aucun remboursement n'est dû : la formule mensuelle prend fin au terme du mois en cours, et la formule annuelle se poursuit jusqu'à son terme sans remboursement au prorata de la période non utilisée.</p>
+
+  <p><strong>8. Obligations de l'utilisateur</strong><br>
+  L'utilisateur est seul responsable du contenu qu'il saisit dans l'application, notamment des données concernant ses propres clients ou patients, de leur exactitude, de leur confidentialité et du respect des obligations qui lui incombent au titre de son activité et de la réglementation applicable. Il lui appartient de vérifier tout compte-rendu avant diffusion à un tiers, en particulier lorsque celui-ci a été mis en forme par la fonction d'organisation automatique.</p>
+
+  <p><strong>9. Disponibilité et responsabilité</strong><br>
+  L'éditeur s'engage à mettre en œuvre les moyens raisonnables pour assurer la disponibilité et le bon fonctionnement du service, sans garantie d'un fonctionnement ininterrompu ni exempt d'erreur. Le service peut être suspendu temporairement pour maintenance. L'application dépend de prestataires tiers (hébergement, base de données, reconnaissance vocale du navigateur, service d'organisation automatique) dont l'indisponibilité échappe au contrôle de l'éditeur. La responsabilité de l'éditeur ne peut excéder le montant des sommes versées par l'utilisateur au titre des douze derniers mois.</p>
+
+  <p><strong>10. Données personnelles</strong><br>
+  Le traitement des données est décrit dans la politique de confidentialité, consultable dans cette même fenêtre et qui fait partie intégrante des présentes conditions. L'utilisateur peut à tout moment demander l'export ou la suppression de son compte et des données associées, par email à servicecb26@gmail.com.</p>
+
+  <p><strong>11. Propriété intellectuelle</strong><br>
+  L'application, son code, son interface et ses éléments graphiques restent la propriété exclusive de l'éditeur. L'abonnement confère un droit d'usage personnel et non exclusif, pour la durée de l'abonnement, à l'exclusion de tout droit de reproduction, de modification ou de revente. Les contenus saisis par l'utilisateur demeurent sa propriété pleine et entière.</p>
+
+  <p><strong>12. Modification des conditions</strong><br>
+  L'éditeur peut modifier les présentes conditions. Toute nouvelle version est portée à la connaissance de l'utilisateur, qui devra l'accepter lors de sa connexion suivante pour continuer à utiliser le service. En cas de refus, l'utilisateur peut résilier son abonnement et obtenir le remboursement au prorata de la période restant à courir.</p>
+
+  <p><strong>13. Droit applicable et litiges</strong><br>
+  Les présentes conditions sont soumises au droit français. En cas de différend, les parties s'efforceront de trouver une solution amiable avant toute action contentieuse. À défaut d'accord, le litige sera porté devant les tribunaux français compétents.</p>
+</template>
+
 <script src="vendor/supabase/supabase.min.js"></script>
-<script src="js/supabase-config.js?v=17"></script>
-<script src="js/auth.js?v=17"></script>
+<script src="js/supabase-config.js?v=18"></script>
+<script src="js/auth.js?v=18"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import * as pdfjsLib from './vendor/pdfjs/pdf.min.mjs';
@@ -493,13 +562,13 @@
   window.pdfjsLib = pdfjsLib;
   window.dispatchEvent(new Event('pdfjslib-ready'));
 </script>
-<script src="js/storage.js?v=17"></script>
-<script src="js/ui.js?v=17"></script>
-<script src="js/speech.js?v=17"></script>
-<script src="js/pdf.js?v=17"></script>
-<script src="js/notes.js?v=17"></script>
-<script src="js/clients.js?v=17"></script>
-<script src="js/photos.js?v=17"></script>
-<script src="js/app.js?v=17"></script>
+<script src="js/storage.js?v=18"></script>
+<script src="js/ui.js?v=18"></script>
+<script src="js/speech.js?v=18"></script>
+<script src="js/pdf.js?v=18"></script>
+<script src="js/notes.js?v=18"></script>
+<script src="js/clients.js?v=18"></script>
+<script src="js/photos.js?v=18"></script>
+<script src="js/app.js?v=18"></script>
 </body>
 </html>
