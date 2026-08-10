@@ -831,12 +831,6 @@ input, textarea {
   margin-bottom: 4px;
 }
 
-.legal-credit {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin: 0;
-}
-
 .legal-version {
   font-size: 0.78rem;
   color: var(--text-muted);
