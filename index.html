@@ -25,7 +25,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=24">
+<link rel="stylesheet" href="css/style.css?v=25">
 <link rel="modulepreload" href="vendor/pdfjs/pdf.min.mjs">
 <link rel="preload" href="vendor/pdfjs/pdf.worker.min.mjs" as="script" crossorigin>
 </head>
@@ -477,7 +477,7 @@
         Le bouton "Organiser avec l'IA" est optionnel : si vous l'utilisez, le texte de votre dictée est envoyé à OpenAI (ChatGPT) uniquement pour être restructuré, puis le résultat vous est renvoyé. En dehors de cette action volontaire, aucun contenu n'est transmis à OpenAI.</p>
 
         <p><strong>Dictée vocale</strong><br>
-        La fonction de dictée vocale utilise la reconnaissance vocale intégrée à votre navigateur (Web Speech API). Selon le navigateur utilisé (par ex. Google Chrome), l'audio capturé par votre microphone peut être transmis aux serveurs de l'éditeur du navigateur (par ex. Google) pour être converti en texte. Aucun enregistrement audio n'est conservé par l'éditeur de l'application ; seul le texte résultant reste stocké localement sur votre appareil.</p>
+        La fonction de dictée vocale utilise la reconnaissance vocale intégrée à votre navigateur (Web Speech API). Selon le navigateur utilisé (par ex. Google Chrome), l'audio capturé par votre microphone peut être transmis aux serveurs de l'éditeur du navigateur (par ex. Google) pour être converti en texte. Aucun enregistrement audio n'est conservé, ni par l'éditeur du navigateur, ni par l'éditeur de l'application ; le texte résultant est ensuite conservé selon les mêmes règles que le reste de vos données (voir « Conséquences pratiques » ci-dessus).</p>
 
         <p><strong>Responsabilité de l'utilisateur</strong><br>
         En tant qu'utilisateur professionnel, vous restez seul responsable des données de vos clients que vous saisissez dans l'application, y compris de leur confidentialité et de leur conformité avec la réglementation applicable à votre activité (RGPD notamment, si vous traitez des données à caractère personnel de vos clients). L'éditeur de l'application n'a accès à aucune de ces données et n'agit pas en tant que sous-traitant au sens du RGPD.</p>
@@ -552,8 +552,8 @@
 </template>
 
 <script src="vendor/supabase/supabase.min.js"></script>
-<script src="js/supabase-config.js?v=24"></script>
-<script src="js/auth.js?v=24"></script>
+<script src="js/supabase-config.js?v=25"></script>
+<script src="js/auth.js?v=25"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import * as pdfjsLib from './vendor/pdfjs/pdf.min.mjs';
@@ -561,13 +561,13 @@
   window.pdfjsLib = pdfjsLib;
   window.dispatchEvent(new Event('pdfjslib-ready'));
 </script>
-<script src="js/storage.js?v=24"></script>
-<script src="js/ui.js?v=24"></script>
-<script src="js/speech.js?v=24"></script>
-<script src="js/pdf.js?v=24"></script>
-<script src="js/notes.js?v=24"></script>
-<script src="js/clients.js?v=24"></script>
-<script src="js/photos.js?v=24"></script>
-<script src="js/app.js?v=24"></script>
+<script src="js/storage.js?v=25"></script>
+<script src="js/ui.js?v=25"></script>
+<script src="js/speech.js?v=25"></script>
+<script src="js/pdf.js?v=25"></script>
+<script src="js/notes.js?v=25"></script>
+<script src="js/clients.js?v=25"></script>
+<script src="js/photos.js?v=25"></script>
+<script src="js/app.js?v=25"></script>
 </body>
 </html>
