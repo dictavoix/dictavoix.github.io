@@ -698,6 +698,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="list-card__actions">
           <button type="button" class="btn btn--ghost btn--sm" data-action="edit">Modifier</button>
           <button type="button" class="btn btn--ghost btn--sm" data-action="download">Télécharger</button>
+          <button type="button" class="btn btn--ghost btn--sm" data-action="share">Partager / Envoyer par mail</button>
           <button type="button" class="btn btn--ghost btn--sm" data-action="file">Dossier client</button>
           <button type="button" class="btn btn--danger btn--sm" data-action="delete">Supprimer</button>
         </div>
@@ -719,10 +720,20 @@ document.addEventListener('DOMContentLoaded', () => {
       li.querySelector('[data-action="download"]').addEventListener('click', async () => {
         try {
           const photos = await downloadPhotosForExport(report);
-          await PDF.shareReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
+          PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
         } catch (err) {
           console.error(err);
           UI.toast("Échec de l'export PDF.", 'error');
+        }
+      });
+
+      li.querySelector('[data-action="share"]').addEventListener('click', async () => {
+        try {
+          const photos = await downloadPhotosForExport(report);
+          await PDF.shareReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
+        } catch (err) {
+          console.error(err);
+          UI.toast("Échec du partage du PDF.", 'error');
         }
       });
 
@@ -1125,6 +1136,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="list-card__meta"></span>
           <div class="list-card__actions">
             <button type="button" class="btn btn--ghost btn--sm" data-action="download">Télécharger</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-action="share">Partager / Envoyer par mail</button>
             <button type="button" class="btn btn--ghost btn--sm" data-action="edit">Modifier</button>
             <button type="button" class="btn btn--danger btn--sm" data-action="delete">Supprimer</button>
           </div>
@@ -1134,10 +1146,19 @@ document.addEventListener('DOMContentLoaded', () => {
         li.querySelector('[data-action="download"]').addEventListener('click', async () => {
           try {
             const photos = await downloadPhotosForExport(report);
-            await PDF.shareReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
+            PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
           } catch (err) {
             console.error(err);
             UI.toast("Échec de l'export PDF.", 'error');
+          }
+        });
+        li.querySelector('[data-action="share"]').addEventListener('click', async () => {
+          try {
+            const photos = await downloadPhotosForExport(report);
+            await PDF.shareReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
+          } catch (err) {
+            console.error(err);
+            UI.toast("Échec du partage du PDF.", 'error');
           }
         });
         li.querySelector('[data-action="edit"]').addEventListener('click', () => {
