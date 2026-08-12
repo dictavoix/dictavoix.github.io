@@ -326,5 +326,11 @@ const PDF = (() => {
     savePdfFile(doc, fileName);
   }
 
-  return { buildDoc, exportReport, savePdfFile, sharePdfFile };
+  /* Construit puis partage directement (partage natif, avec repli sur le téléchargement) */
+  function shareReport(params) {
+    const { doc, fileName } = buildDoc(params);
+    return sharePdfFile(doc, fileName);
+  }
+
+  return { buildDoc, exportReport, shareReport, savePdfFile, sharePdfFile };
 })();

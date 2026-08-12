@@ -719,7 +719,7 @@ document.addEventListener('DOMContentLoaded', () => {
       li.querySelector('[data-action="download"]').addEventListener('click', async () => {
         try {
           const photos = await downloadPhotosForExport(report);
-          PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
+          await PDF.shareReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
         } catch (err) {
           console.error(err);
           UI.toast("Échec de l'export PDF.", 'error');
@@ -1134,7 +1134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         li.querySelector('[data-action="download"]').addEventListener('click', async () => {
           try {
             const photos = await downloadPhotosForExport(report);
-            PDF.exportReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
+            await PDF.shareReport({ patientName: report.patient_name, content: report.content, profile: Storage.getProfile(), photos });
           } catch (err) {
             console.error(err);
             UI.toast("Échec de l'export PDF.", 'error');

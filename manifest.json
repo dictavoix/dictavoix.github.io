@@ -1,7 +1,7 @@
 {
   "name": "Dictavoix",
   "short_name": "Dictavoix",
-  "start_url": "./index.html?v=22",
+  "start_url": "./index.html?v=23",
   "display": "standalone",
   "background_color": "#0b3d3c",
   "theme_color": "#0b3d3c",
