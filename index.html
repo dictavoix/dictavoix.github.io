@@ -25,7 +25,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=25">
+<link rel="stylesheet" href="css/style.css?v=26">
 <link rel="modulepreload" href="vendor/pdfjs/pdf.min.mjs">
 <link rel="preload" href="vendor/pdfjs/pdf.worker.min.mjs" as="script" crossorigin>
 </head>
@@ -442,7 +442,7 @@
         Email de contact : dictavoix@outlook.fr</p>
 
         <p><strong>Directeur de la publication</strong><br>
-        CONSTANT Barbara</p>
+        Barbara CONSTANT</p>
 
         <p><strong>Hébergement</strong><br>
         GitHub, Inc. (GitHub Pages)<br>
@@ -451,7 +451,7 @@
         https://github.com</p>
 
         <p><strong>Authentification et stockage des données</strong><br>
-        La connexion des utilisateurs (création de compte, mot de passe) ainsi que le stockage des comptes-rendus, notes et fiches client sont gérés par Supabase, prestataire indépendant.<br>
+        La connexion des utilisateurs (création de compte, mot de passe) ainsi que le stockage des comptes-rendus, notes, fiches client et photos jointes sont gérés par Supabase, prestataire indépendant.<br>
         https://supabase.com</p>
 
         <p><strong>Organisation automatique par IA (fonctionnalité optionnelle)</strong><br>
@@ -464,7 +464,7 @@
 
       <div class="legal-section">
         <h3>Politique de confidentialité</h3>
-        <p>Le contenu de vos comptes-rendus, notes et fiches client est stocké de façon sécurisée dans la base de données de Supabase, notre prestataire technique. Chaque compte est isolé : seul vous, une fois connecté(e) avec votre identifiant et votre mot de passe, pouvez accéder à vos propres données.</p>
+        <p>Le contenu de vos comptes-rendus, notes et fiches client est stocké de façon sécurisée dans la base de données de Supabase, notre prestataire technique ; les photos que vous joignez à un compte-rendu sont stockées séparément, dans un espace de stockage de fichiers également fourni par Supabase. Chaque compte est isolé : seul vous, une fois connecté(e) avec votre identifiant et votre mot de passe, pouvez accéder à vos propres données.</p>
 
         <p><strong>Conséquences pratiques :</strong></p>
         <ul>
@@ -536,7 +536,7 @@
   L'utilisateur est seul responsable du contenu qu'il saisit dans l'application, notamment des données concernant ses propres clients ou patients, de leur exactitude, de leur confidentialité et du respect des obligations qui lui incombent au titre de son activité et de la réglementation applicable. Il lui appartient de vérifier tout compte-rendu avant diffusion à un tiers, en particulier lorsque celui-ci a été mis en forme par la fonction d'organisation automatique.</p>
 
   <p><strong>9. Disponibilité et responsabilité</strong><br>
-  L'éditeur s'engage à mettre en œuvre les moyens raisonnables pour assurer la disponibilité et le bon fonctionnement du service, sans garantie d'un fonctionnement ininterrompu ni exempt d'erreur. Le service peut être suspendu temporairement pour maintenance. L'application dépend de prestataires tiers (hébergement, base de données, reconnaissance vocale du navigateur, service d'organisation automatique) dont l'indisponibilité échappe au contrôle de l'éditeur. La responsabilité de l'éditeur ne peut excéder le montant des sommes versées par l'utilisateur au titre des douze derniers mois.</p>
+  L'éditeur s'engage à mettre en œuvre les moyens raisonnables pour assurer la disponibilité et le bon fonctionnement du service, sans garantie d'un fonctionnement ininterrompu ni exempt d'erreur. Le service peut être suspendu temporairement pour maintenance. L'application dépend de prestataires tiers (hébergement, base de données et stockage de fichiers, reconnaissance vocale du navigateur, service d'organisation automatique) dont l'indisponibilité échappe au contrôle de l'éditeur. La responsabilité de l'éditeur ne peut excéder le montant des sommes versées par l'utilisateur au titre des douze derniers mois.</p>
 
   <p><strong>10. Données personnelles</strong><br>
   Le traitement des données est décrit dans la politique de confidentialité, consultable dans cette même fenêtre et qui fait partie intégrante des présentes conditions. L'utilisateur peut à tout moment demander l'export ou la suppression de son compte et des données associées, par email à dictavoix@outlook.fr.</p>
@@ -552,8 +552,8 @@
 </template>
 
 <script src="vendor/supabase/supabase.min.js"></script>
-<script src="js/supabase-config.js?v=25"></script>
-<script src="js/auth.js?v=25"></script>
+<script src="js/supabase-config.js?v=26"></script>
+<script src="js/auth.js?v=26"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import * as pdfjsLib from './vendor/pdfjs/pdf.min.mjs';
@@ -561,13 +561,13 @@
   window.pdfjsLib = pdfjsLib;
   window.dispatchEvent(new Event('pdfjslib-ready'));
 </script>
-<script src="js/storage.js?v=25"></script>
-<script src="js/ui.js?v=25"></script>
-<script src="js/speech.js?v=25"></script>
-<script src="js/pdf.js?v=25"></script>
-<script src="js/notes.js?v=25"></script>
-<script src="js/clients.js?v=25"></script>
-<script src="js/photos.js?v=25"></script>
-<script src="js/app.js?v=25"></script>
+<script src="js/storage.js?v=26"></script>
+<script src="js/ui.js?v=26"></script>
+<script src="js/speech.js?v=26"></script>
+<script src="js/pdf.js?v=26"></script>
+<script src="js/notes.js?v=26"></script>
+<script src="js/clients.js?v=26"></script>
+<script src="js/photos.js?v=26"></script>
+<script src="js/app.js?v=26"></script>
 </body>
 </html>
