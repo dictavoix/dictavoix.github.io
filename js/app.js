@@ -523,21 +523,39 @@ document.addEventListener('DOMContentLoaded', () => {
   btnPdfPreviewEdit.addEventListener('click', closePdfPreview);
   modalPdfPreview.addEventListener('click', (e) => { if (e.target === modalPdfPreview) closePdfPreview(); });
 
-  btnPdfPreviewConfirm.addEventListener('click', async () => {
-    if (!pendingPdf) return;
-    const { doc, fileName, patientName, content } = pendingPdf;
-    /* Sur iOS/Safari, doc.save() peut faire quitter la page (ouverture du PDF
-       dans la visionneuse du navigateur) : l'enregistrement doit donc être
-       terminé AVANT, sinon il n'a jamais le temps de se faire. */
+  /* Sur iOS/Safari, doc.save() peut faire quitter la page (ouverture du PDF
+     dans la visionneuse du navigateur) : l'enregistrement doit donc être
+     terminé AVANT tout téléchargement ou partage, sinon il n'a jamais le
+     temps de se faire. */
+  async function persistPendingReport(patientName, content) {
     if (editingReportId) {
       await updateReportRecord(editingReportId, { patientName, content });
       editingReportId = null;
-      UI.toast('Compte-rendu mis à jour dans l’historique.', 'success');
-    } else {
-      await saveReportRecord({ patientName, content });
-      UI.toast('PDF généré et enregistré.', 'success');
+      return true;
     }
+    await saveReportRecord({ patientName, content });
+    return false;
+  }
+
+  btnPdfPreviewConfirm.addEventListener('click', async () => {
+    if (!pendingPdf) return;
+    const { doc, fileName, patientName, content } = pendingPdf;
+    const wasUpdate = await persistPendingReport(patientName, content);
+    UI.toast(wasUpdate ? 'Compte-rendu mis à jour dans l’historique.' : 'PDF généré et enregistré.', 'success');
     PDF.savePdfFile(doc, fileName);
+    closePdfPreview();
+  });
+
+  const btnPdfPreviewShare = document.getElementById('btn-pdf-preview-share');
+
+  btnPdfPreviewShare.addEventListener('click', async () => {
+    if (!pendingPdf) return;
+    const { doc, fileName, patientName, content } = pendingPdf;
+    await persistPendingReport(patientName, content);
+    const usedNativeShare = await PDF.sharePdfFile(doc, fileName);
+    if (!usedNativeShare) {
+      UI.toast('Le partage direct n’est pas disponible ici : le PDF a été téléchargé, vous pouvez le joindre manuellement à votre email.', 'success');
+    }
     closePdfPreview();
   });
 

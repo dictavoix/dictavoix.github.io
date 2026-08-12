@@ -783,11 +783,12 @@ input, textarea {
 
 .modal__footer--pdf {
   justify-content: flex-start;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .modal__footer--pdf .btn {
-  flex: 1 1 0;
+  flex: 1 1 140px;
   min-width: 0;
   text-align: center;
   white-space: normal;

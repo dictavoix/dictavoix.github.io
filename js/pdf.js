@@ -175,7 +175,7 @@ const PDF = (() => {
 
   function fileNameFor(patientName) {
     const safePatient = (patientName || 'patient').trim().replace(/\s+/g, '-').toLowerCase() || 'patient';
-    return `dictavoix_compte-rendu_${safePatient}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    return `${safePatient}_compte-rendu_${new Date().toISOString().slice(0, 10)}.pdf`;
   }
 
   function photoFormat(dataUrl) {
@@ -293,11 +293,38 @@ const PDF = (() => {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  /* Partage natif du fichier PDF (feuille de partage iOS/Android) plutôt que de
+     passer par le visualiseur PDF de Safari puis son propre bouton de partage :
+     ce dernier partage parfois le PDF comme une page web (avec son adresse
+     https en plus dans le mail) au lieu du fichier lui-même. En donnant
+     directement un vrai fichier à l'OS via l'API de partage native, l'email
+     ne contient que la pièce jointe. Retombe sur le téléchargement classique
+     si le partage natif de fichiers n'est pas disponible (ordinateur, ou
+     navigateur qui ne le prend pas en charge) ou si l'utilisateur annule.
+     Retourne true si le partage natif a été utilisé, false sinon. */
+  async function sharePdfFile(doc, fileName) {
+    if (typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && typeof File !== 'undefined') {
+      const blob = doc.output('blob');
+      const file = new File([blob], fileName, { type: 'application/pdf' });
+      if (navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] });
+          return true;
+        } catch (err) {
+          if (err && err.name === 'AbortError') return true; // l'utilisateur a annulé le partage, rien d'autre à faire
+          console.warn('Partage natif indisponible, téléchargement classique utilisé.', err);
+        }
+      }
+    }
+    savePdfFile(doc, fileName);
+    return false;
+  }
+
   /* Construit puis enregistre directement (téléchargement immédiat, sans prévisualisation) */
   function exportReport(params) {
     const { doc, fileName } = buildDoc(params);
     savePdfFile(doc, fileName);
   }
 
-  return { buildDoc, exportReport, savePdfFile };
+  return { buildDoc, exportReport, savePdfFile, sharePdfFile };
 })();
